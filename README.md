@@ -19,6 +19,7 @@ Tudo roda no navegador: os arquivos do paciente **não são enviados** a nenhum 
 8. Avisa quando o rastreamento parece ruim (índice de regularidade).
 9. **Compara** trials ou sessões (antes × depois, condições), quantos quiser.
 10. Gera **laudo em PDF** e **Excel** com todos os dados.
+11. **Salva a análise** num arquivo `.json` (marcações, ajustes e resultados). Para comparar depois, basta abrir o arquivo, mesmo sem o ZIP; com o ZIP, tudo volta a ficar editável.
 
 ## Sobre os eventos (TD e TO)
 A detecção é automática e você escolhe o método:

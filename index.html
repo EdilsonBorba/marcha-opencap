@@ -32,6 +32,8 @@
       <button id="btn-pasta">Escolher pasta</button>
     </div>
     <p class="dica">Pode carregar várias sessões (ex.: antes e depois). ZIP muito grande? Use a pasta descompactada: não há limite de tamanho.</p>
+    <div class="linha"><button id="btn-abrir-analise" class="sec">Abrir análise salva (.json)</button></div>
+    <input id="in-analise" type="file" accept=".json,application/json" multiple hidden>
     <input id="in-zip" type="file" accept=".zip" multiple hidden>
     <input id="in-pasta" type="file" webkitdirectory multiple hidden>
   </div>
@@ -180,7 +182,9 @@
   <div class="linha">
     <button id="btn-pdf" class="prim">Baixar laudo (PDF)</button>
     <button id="btn-xlsx">Baixar dados (Excel)</button>
+    <button id="btn-salvar">Salvar análise (.json)</button>
   </div>
+  <p class="dica">“Salvar análise” guarda num arquivo pequeno as marcações (TD/TO), os ajustes e os resultados de todos os trials analisados, e os dados do laudo (inclusive o nome do paciente: guarde em local seguro). Para comparar depois, basta abrir o arquivo no passo 1, mesmo sem o ZIP. Com o ZIP carregado junto, tudo volta a ficar editável.</p>
   <p id="laudo-status" class="status"></p>
 </section>
 </main>

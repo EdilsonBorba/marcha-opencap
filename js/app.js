@@ -14,7 +14,7 @@ const $$ = (s) => [...document.querySelectorAll(s)];
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const fmt = (v, d = 1) => (v == null || !isFinite(v)) ? '–' : (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
 
-const estado = { sessoes: [], analises: new Map(), atual: null, frame: 0, videoURL: null, tocando: false };
+const estado = { sessoes: [], analises: new Map(), atual: null, frame: 0, videoURL: null, tocando: false, salvos: new Map() };
 window.__estado = estado;
 
 // ---------------- preferências de visualização ----------------
@@ -182,7 +182,15 @@ async function prepararAnalise(k) {
     cfg: { ambiente: ant?.cfg.ambiente || 'esteira', velEsteira: null, incl: ant?.cfg.incl ?? null, inclUn: ant?.cfg.inclUn || 'pct', atividade: '', metodo: '', janela: null, excluidos: null } };
   estado.analises.set(k, A);
   detectar(A);
+  const salvo = estado.salvos.get(`${sessao.nome}|${nome}`);
+  if (salvo) aplicarSalvo(A, salvo);
   return A;
+}
+function aplicarSalvo(A, s) {
+  A.rotulo = s.rotulo || A.rotulo;
+  A.cfg = { ...A.cfg, ...s.cfg, excluidos: s.cfg.excluidos ? new Set(s.cfg.excluidos) : null };
+  if (s.eventos) A.eventos = structuredClone(s.eventos);
+  A.janelaAuto = false; A.restaurado = s.salvoEm;
 }
 function calcularRes(A) {
   const ativ = A.cfg.atividade || A.det.atividade;
@@ -218,6 +226,7 @@ function infoTrial(A) {
     : `<br>Inclinação estimada: ${fmt(d.inclinacao, 1)}° = ${fmt(Math.tan(d.inclinacao * Math.PI / 180) * 100, 1)}% <span class="dica">· estimativa pelos pés apoiados, erro de cerca de ±2°; se souber, informe acima</span>`;
   $('#trial-info').classList.remove('erro');
   $('#trial-info').innerHTML = `Duração ${fmt(t[t.length - 1], 1)} s · ${fmt(1 / (t[1] - t[0]), 0)} quadros/s · atividade: <b>${A.cfg.atividade || d.atividade}</b> · método: ${d.metodo}` + incl +
+    (A.restaurado ? `<br><b>Marcações e ajustes restaurados</b> da análise salva em ${new Date(A.restaurado).toLocaleDateString('pt-BR')}.` : '') +
     (j ? `<br>Trecho analisado: <b>${fmt(t[j[0]], 1)} a ${fmt(t[j[1]], 1)} s</b>${A.janelaAuto ? ' (trecho estável detectado automaticamente)' : ''}` : '<br>Trecho analisado: trial inteiro');
   const al = $('#alerta-qualidade');
   if (d.qualidade < 0.6) {
@@ -489,7 +498,13 @@ function montarComparar() {
       return `<label class="radio"><input type="checkbox" data-c="${k}" ${comparados.has(k) ? 'checked' : ''}> ${esc(A?.rotulo || t)}${marca}</label>`;
     }).join('');
     return `<div class="comp-sessao"><div class="dica">${esc(s.nome)}</div><div class="comp-itens">${itens}</div></div>`;
-  }).join('');
+  }).join('') + (() => {
+    const sv = [...estado.analises.values()].filter(A => A.soSalvo && !estado.sessoes.some(s => s.nome === A.sessaoNome && estado.analises.get(chave(s, A.trialNome))?.res));
+    if (!sv.length) return '';
+    const grupos = {};
+    for (const A of sv) (grupos[A.sessao.nome] ||= []).push(A);
+    return Object.entries(grupos).map(([g, As]) => `<div class="comp-sessao"><div class="dica">${esc(g)}</div><div class="comp-itens">${As.map(A => `<label class="radio"><input type="checkbox" data-c="${A.k}" ${comparados.has(A.k) ? 'checked' : ''}> ${esc(A.rotulo)} <span class="dica">(salva)</span></label>`).join('')}</div></div>`).join('');
+  })();
   $('#comp-lista').innerHTML = html;
   $$('#comp-lista input').forEach(c => c.onchange = async () => {
     const k = c.dataset.c;
@@ -552,6 +567,55 @@ $('#btn-xlsx').onclick = () => {
   try { gerarExcel(A, dadosLaudo(), selecionadosComparacao()); status('#laudo-status', 'Excel baixado.'); }
   catch (err) { console.error(err); status('#laudo-status', 'Erro ao gerar Excel: ' + err.message, true); }
 };
+// ---------------- salvar / abrir análise ----------------
+const VERSAO_ARQ = 1;
+const resParaJSON = (R) => ({
+  atividade: R.atividade, metodo: R.metodo, tab: R.tab, rdMedio: R.rdMedio, pontos: R.pontos,
+  curvas: Object.fromEntries(Object.entries(R.curvas).map(([c, l]) => [c, Object.fromEntries(Object.entries(l).map(([k, v]) => [k, { m: Array.from(v.m, x => +x.toFixed(3)), s: Array.from(v.s, x => +x.toFixed(3)), n: v.n }]))])),
+  nPassadas: { D: R.passadas.filter(p => !p.excluida && p.lado === 'D').length, E: R.passadas.filter(p => !p.excluida && p.lado === 'E').length },
+});
+$('#btn-salvar').onclick = () => {
+  const feitos = [...estado.analises.values()].filter(A => A.res && !A.soSalvo);
+  if (!feitos.length) { status('#laudo-status', 'Nada para salvar ainda.', true); return; }
+  const dados = { ferramenta: 'Marcha OpenCap', versao: VERSAO_ARQ, salvoEm: new Date().toISOString(), laudo: dadosLaudo(),
+    analises: feitos.map(A => ({ sessao: A.sessao.nome, trial: A.trial.nome, rotulo: A.rotulo, auto: !!A.auto,
+      cfg: { ...A.cfg, excluidos: A.cfg.excluidos ? [...A.cfg.excluidos] : null }, eventos: A.eventos, res: resParaJSON(A.res) })) };
+  const nome = (dadosLaudo().paciente || feitos[0].sessao.nome).replace(/[^\wÀ-ú\-]+/g, '_').slice(0, 40);
+  const blob = new Blob([JSON.stringify(dados)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `analise_${nome}_${new Date().toISOString().slice(0, 10)}.json`; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  status('#laudo-status', `Análise salva (${feitos.length} trial(s)).`);
+};
+$('#btn-abrir-analise').onclick = () => $('#in-analise').click();
+$('#in-analise').onchange = async (e) => {
+  for (const f of e.target.files) {
+    try {
+      const d = JSON.parse(await f.text());
+      if (d.ferramenta !== 'Marcha OpenCap' || !Array.isArray(d.analises)) throw new Error('não é um arquivo de análise desta ferramenta');
+      const quando = d.salvoEm ? new Date(d.salvoEm).toLocaleDateString('pt-BR') : '';
+      for (const s of d.analises) {
+        s.salvoEm = d.salvoEm;
+        estado.salvos.set(`${s.sessao}|${s.trial}`, s);
+        // se a sessão já está carregada e o trial já foi aberto, reaplica as marcações
+        const ses = estado.sessoes.find(x => x.nome === s.sessao);
+        const Aab = ses && estado.analises.get(chave(ses, s.trial));
+        if (Aab) { aplicarSalvo(Aab, s); calcularRes(Aab); continue; }
+        // análise só do arquivo: entra na comparação e no laudo comparativo
+        const k = `salvo|${s.sessao}|${s.trial}|${d.salvoEm}`;
+        const res = { ...s.res, passadas: [] };
+        estado.analises.set(k, { k, soSalvo: true, sessaoNome: s.sessao, trialNome: s.trial, rotulo: s.rotulo || s.trial, auto: s.auto,
+          sessao: { nome: `${s.sessao} · salva em ${quando}`, id: 'salvo' }, cfg: { ...s.cfg }, res });
+      }
+      if (d.laudo && !$('#in-paciente').value) { $('#in-paciente').value = d.laudo.paciente || ''; $('#in-avaliador').value = d.laudo.avaliador || ''; }
+      status('#carregar-status', `Análise salva aberta: ${d.analises.length} trial(s) de ${quando}. ${estado.sessoes.length ? 'Os trials da mesma sessão recebem as marcações salvas ao serem abertos.' : 'Já podem ser usados na comparação (passo 5).'}`);
+    } catch (err) { status('#carregar-status', `Não consegui abrir ${f.name}: ${err.message}`, true); }
+  }
+  e.target.value = '';
+  $('#s-comparar').hidden = false; $('#s-laudo').hidden = false;
+  montarComparar();
+  const A = atual(); if (A?.restaurado) { preencherForm(A); tl.set(A); tl.redesenhar(); recalcular(); }
+};
+
 function dadosLaudo() { return { paciente: $('#in-paciente').value.trim(), data: $('#in-data').value, avaliador: $('#in-avaliador').value.trim(), obs: $('#in-obs').value.trim() }; }
 
 // ---------------- util ----------------
