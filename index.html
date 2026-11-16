@@ -34,6 +34,25 @@
     <input id="in-zip" type="file" accept=".zip" multiple hidden>
     <input id="in-pasta" type="file" webkitdirectory multiple hidden>
   </div>
+  <details id="bloco-api" class="bloco-api">
+    <summary><b>Ou entre com a sua conta do OpenCap</b> <span class="dica">(experimental · escolha a sessão e os trials sem baixar o ZIP)</span></summary>
+    <form id="form-login" class="grade-form" autocomplete="on">
+      <label>Usuário ou e-mail do OpenCap<input id="api-user" autocomplete="username" required></label>
+      <label>Senha<input id="api-senha" type="password" autocomplete="current-password" required></label>
+      <div class="linha"><button class="prim" type="submit">Entrar</button></div>
+    </form>
+    <p class="dica">A senha vai direto para o OpenCap (api.opencap.ai). Esta página guarda só o acesso temporário, nesta aba, e esquece ao fechar.</p>
+    <div id="api-logado" hidden>
+      <div class="linha"><span id="api-quem" class="dica"></span><button id="api-sair" class="sec" type="button">Sair</button></div>
+      <div class="grade-form">
+        <label>Sessão<select id="api-sessoes"></select></label>
+      </div>
+      <div id="api-trials" class="comp-lista"></div>
+      <div class="linha"><button id="api-carregar" class="prim" type="button">Carregar trials marcados</button></div>
+    </div>
+    <p id="api-status" class="status"></p>
+    <details class="diag"><summary class="dica">Diagnóstico (para conferir a conexão)</summary><pre id="api-diag" class="mono"></pre></details>
+  </details>
   <p id="carregar-status" class="status"></p>
   <ul id="lista-sessoes" class="sessoes"></ul>
 </section>

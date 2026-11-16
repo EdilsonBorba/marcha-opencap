@@ -4,6 +4,7 @@ import { gerarPDF, gerarExcel } from './report.js';
 import { tracosCurva, tracosComparacao, setasEixo, PALETA } from './charts.js';
 import { criarTimeline } from './timeline.js';
 import { desenharEsqueleto } from './skeleton.js';
+import * as api from './api.js';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -67,6 +68,61 @@ function montarSelTrial() {
   if (at) sel.value = at;
 }
 $('#sel-trial').onchange = (e) => selecionar(e.target.value);
+
+// ---------------- 1b. conta do OpenCap (API) ----------------
+const diag = (o) => { const el = $('#api-diag'); el.textContent += (typeof o === 'string' ? o : JSON.stringify(o, null, 1)) + '\n'; };
+let sessoesAPI = [];
+$('#form-login').onsubmit = async (e) => {
+  e.preventDefault();
+  status('#api-status', 'Entrando…');
+  try {
+    const r = await api.entrar($('#api-user').value.trim(), $('#api-senha').value);
+    $('#api-senha').value = '';
+    if (!r.ok) { status('#api-status', 'O OpenCap não aceitou o login. Veja o diagnóstico.', true); diag({ login: r.status, resposta: r.resposta }); return; }
+    diag({ login: 'ok', campos: Object.keys(r.resposta) });
+    await listarAPI();
+  } catch (err) { status('#api-status', 'Falha de conexão com o OpenCap: ' + err.message, true); diag('login: ' + err.message); }
+};
+$('#api-sair').onclick = () => { api.sair(); $('#api-logado').hidden = true; $('#form-login').hidden = false; status('#api-status', 'Você saiu da conta.'); };
+async function listarAPI() {
+  status('#api-status', 'Buscando suas sessões…');
+  try {
+    sessoesAPI = await api.listarSessoes();
+    diag({ sessoes: sessoesAPI.length, exemploCampos: sessoesAPI[0] ? Object.keys(sessoesAPI[0]) : [] });
+    $('#form-login').hidden = true; $('#api-logado').hidden = false;
+    $('#api-quem').textContent = `${sessoesAPI.length} sessões na conta`;
+    $('#api-sessoes').innerHTML = '<option value="">escolha…</option>' + sessoesAPI.map(s => `<option value="${s.id}">${esc(s.name || 'sem nome')} · ${String(s.created_at || '').slice(0, 10).split('-').reverse().join('/')}${s.trials ? ` · ${api.trialsDeMovimento(s).length} trials` : ''}</option>`).join('');
+    status('#api-status', 'Escolha a sessão.');
+  } catch (err) { status('#api-status', 'Não consegui listar as sessões: ' + err.message, true); diag({ sessoes: err.status, corpo: err.corpo }); if (err.status === 401) api.sair(); }
+}
+$('#api-sessoes').onchange = async (e) => {
+  $('#api-trials').innerHTML = ''; if (!e.target.value) return;
+  status('#api-status', 'Lendo a sessão…');
+  try {
+    const s = await api.sessao(e.target.value);
+    const ts = api.trialsDeMovimento(s);
+    $('#api-trials').innerHTML = ts.map(t => `<label class="radio"><input type="checkbox" data-t="${t.id}" checked> ${esc(t.name)}</label>`).join('') || '<span class="dica">Sem trials processados.</span>';
+    $('#api-trials').dataset.sessao = JSON.stringify({ id: s.id, name: s.name, trials: s.trials, meta: s.meta ? { neutral_trial: s.meta.neutral_trial } : null });
+    status('#api-status', `${ts.length} trials. Marque os que quer analisar.`);
+  } catch (err) { status('#api-status', 'Não consegui ler a sessão: ' + err.message, true); diag({ sessao: err.status, corpo: err.corpo }); }
+};
+$('#api-carregar').onclick = async () => {
+  const s = JSON.parse($('#api-trials').dataset.sessao || 'null'); if (!s) return;
+  const ids = new Set($$('#api-trials input:checked').map(c => c.dataset.t));
+  const escolhidos = (s.trials || []).filter(t => ids.has(t.id));
+  if (!escolhidos.length) { status('#api-status', 'Marque pelo menos um trial.', true); return; }
+  try {
+    const sessaoObj = await api.montarSessaoAPI(s, escolhidos, (m) => status('#api-status', m));
+    diag({ arquivos: sessaoObj.files.size, cameras: sessaoObj.cams, trials: sessaoObj.diag });
+    if (!sessaoObj.trials.length) { status('#api-status', 'O OpenCap não devolveu os arquivos de cinemática destes trials. Veja o diagnóstico.', true); return; }
+    // teste rápido: o navegador consegue baixar os arquivos?
+    try { await sessaoObj.files.get(`MarkerData/${sessaoObj.trials[0]}.trc`).text(); diag('download do .trc: ok'); }
+    catch (err) { diag('download do .trc falhou: ' + err.message); status('#api-status', 'O navegador não conseguiu baixar os arquivos do OpenCap (bloqueio do servidor de arquivos). Veja o diagnóstico.', true); return; }
+    registrar(sessaoObj);
+    status('#api-status', `Carregado: ${sessaoObj.trials.length} trials${sessaoObj.cams.length ? '' : ' (sem vídeo sincronizado pela API; use o esqueleto)'}.`);
+  } catch (err) { console.error(err); status('#api-status', 'Erro ao carregar: ' + err.message, true); diag({ carregar: err.message, corpo: err.corpo }); }
+};
+if (api.token()) { $('#bloco-api').open = true; listarAPI(); }
 
 // ---------------- 2. trial ----------------
 async function selecionar(k) {
