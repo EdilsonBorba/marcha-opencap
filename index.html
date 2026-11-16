@@ -48,7 +48,8 @@
       <div class="grade-form">
         <label>Sessão<select id="api-sessoes"></select></label>
       </div>
-      <div id="api-trials" class="comp-lista"></div>
+      <div class="linha"><button type="button" class="sec" data-todos="api-trials" data-v="1">Marcar todos</button><button type="button" class="sec" data-todos="api-trials" data-v="0">Desmarcar todos</button></div>
+      <div id="api-trials" class="lista-trials"></div>
       <div class="linha"><button id="api-carregar" class="prim" type="button">Carregar trials marcados</button></div>
     </div>
     <p id="api-status" class="status"></p>
@@ -162,6 +163,7 @@
 <section id="s-comparar" class="card" hidden>
   <h2><span class="n">5</span> Comparar trials ou sessões</h2>
   <p class="dica">Marque dois ou mais trials já analisados (ex.: antes × depois, ou condições diferentes).</p>
+  <div class="linha"><button type="button" class="sec" id="comp-todos">Marcar todos</button><button type="button" class="sec" id="comp-nenhum">Desmarcar todos</button></div>
   <div id="comp-lista" class="comp-lista"></div>
   <div id="comp-saida"></div>
 </section>

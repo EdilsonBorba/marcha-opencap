@@ -121,7 +121,7 @@ kbd{font:11px ui-monospace,Menlo,monospace;border:1px solid var(--line);border-b
 
 .comp-lista{display:block}
 .comp-sessao{margin:4px 0 8px}
-.comp-itens{display:flex;flex-wrap:wrap;gap:4px 16px}
+.comp-itens,.lista-trials{display:flex;flex-wrap:wrap;gap:4px 16px;margin:6px 0}
 
 #tela-esq{position:relative}
 .visor3d{position:absolute;inset:0}

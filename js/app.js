@@ -124,6 +124,7 @@ $('#api-carregar').onclick = async () => {
     status('#api-status', `Carregado: ${sessaoObj.trials.length} trials${sessaoObj.cams.length ? '' : ' (sem vídeo sincronizado pela API; use o esqueleto)'}.`);
   } catch (err) { console.error(err); status('#api-status', 'Erro ao carregar: ' + err.message, true); diag({ carregar: err.message, corpo: err.corpo }); }
 };
+$$('[data-todos]').forEach(b => b.onclick = () => $$('#' + b.dataset.todos + ' input[type=checkbox]').forEach(c => c.checked = b.dataset.v === '1'));
 if (api.token()) { $('#bloco-api').open = true; listarAPI(); }
 
 // ---------------- 2. trial ----------------
@@ -494,6 +495,20 @@ function montarComparar() {
   });
   desenharComparacao();
 }
+$('#comp-nenhum').onclick = () => { comparados.clear(); montarComparar(); };
+$('#comp-todos').onclick = async () => {
+  const ks = estado.sessoes.flatMap(s => s.trials.filter(t => s.files.has(`MarkerData/${t}.trc`)).map(t => chave(s, t)));
+  let n = 0;
+  for (const k of ks) {
+    comparados.add(k);
+    let A = estado.analises.get(k);
+    if (!A?.res) {
+      $('#comp-saida').innerHTML = `<p class="status">Analisando ${++n}…</p>`;
+      try { A = await prepararAnalise(k); A.auto = true; calcularRes(A); } catch (err) { comparados.delete(k); }
+    }
+  }
+  montarComparar(); montarSelTrial();
+};
 function selecionadosComparacao() { return [...comparados].map(k => estado.analises.get(k)).filter(A => A?.res); }
 function desenharComparacao() {
   const L = selecionadosComparacao(), out = $('#comp-saida');
