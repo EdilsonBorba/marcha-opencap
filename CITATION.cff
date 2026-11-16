@@ -11,3 +11,4 @@ repository-code: "https://github.com/EdilsonBorba/marcha-opencap"
 url: "https://edilsonborba.github.io/marcha-opencap/"
 license: MIT
 keywords: [gait analysis, running, OpenCap, OpenSim, markerless motion capture, biomechanics]
+doi: "10.5281/zenodo.24289782"

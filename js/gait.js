@@ -230,10 +230,14 @@ export const ANGULOS = [
   ['pelvis_rotation', 'Pelve · rotação (lado = membro do ciclo)', 'Lado à frente', 'Lado atrás', { global: true, espelhaE: true }],
   ['lumbar_extension', 'Tronco · extensão / flexão (em relação à pelve)', 'Extensão', 'Flexão', { global: true }],
   ['lumbar_bending', 'Tronco · inclinação lateral (em relação à pelve)', 'Para o lado', 'Lado oposto', { global: true, espelhaE: true }],
+  ['com_v', 'Centro de massa · vertical', 'Para cima', 'Para baixo', { com: 'v', un: 'cm' }],
+  ['com_ml', 'Centro de massa · médio-lateral (lado = membro do ciclo)', 'Para o lado', 'Lado oposto', { com: 'ml', espelhaE: true, un: 'cm' }],
+  ['com_ap', 'Centro de massa · ântero-posterior', 'Para frente', 'Para trás', { com: 'ap', un: 'cm' }],
 ];
+export const unidade = (c) => (ANGULOS.find(a => a[0] === c)?.[4].un) || '°';
 export const PREDEF = {
-  marcha: { nome: 'Marcha clínica', curvas: ['hip_flexion', 'knee_angle', 'ankle_angle', 'hip_adduction'] },
-  corrida: { nome: 'Corrida', curvas: ['hip_flexion', 'knee_angle', 'ankle_angle', 'hip_adduction', 'hip_rotation', 'pelvis_list'] },
+  marcha: { nome: 'Marcha clínica', curvas: ['hip_flexion', 'knee_angle', 'ankle_angle', 'hip_adduction', 'com_v'] },
+  corrida: { nome: 'Corrida', curvas: ['hip_flexion', 'knee_angle', 'ankle_angle', 'hip_adduction', 'hip_rotation', 'pelvis_list', 'com_v', 'com_ml', 'com_ap'] },
   completo: { nome: 'Completo', curvas: ANGULOS.map(a => a[0]) },
 };
 
@@ -307,6 +311,19 @@ export function analisar(trial, ev, cfg) {
       // curvas normalizadas
       p.curvas = {};
       for (const [c, , , , o] of ANGULOS) {
+        if (o.com) {
+          // deslocamento do CM na passada (cm), em relação à média da passada; no solo, o avanço médio é removido
+          if (!trial.com || !d) continue;
+          const C = trial.com, n101 = [];
+          const comp = (i) => o.com === 'v' ? C.y[i] : o.com === 'ml' ? (-C.x[i] * d.z + C.z[i] * d.x) : (C.x[i] * d.x + C.z[i] * d.z);
+          const serie = Float64Array.from(t, (_, i) => comp(i));
+          let cv = interp101(t, serie, t[a], t[b]);
+          if (o.com === 'ap') { const ini = cv[0], fim = cv[100]; cv = cv.map((v, k) => v - (ini + (fim - ini) * k / 100)); }
+          const m = cv.reduce((s, v) => s + v, 0) / 101;
+          const sg = lado === 'E' && o.espelhaE ? -1 : 1;
+          p.curvas[c] = cv.map(v => sg * (v - m) * 100);
+          continue;
+        }
         const col = o.global ? c : c + L.s;
         if (!trial.mot.cols[col]) continue;
         let y = trial.mot.cols[col];

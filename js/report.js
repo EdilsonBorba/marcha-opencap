@@ -1,4 +1,4 @@
-import { ANGULOS, VARS } from './gait.js';
+import { ANGULOS, VARS, unidade } from './gait.js';
 import { tracosCurva, tracosComparacao, setasEixo, PALETA } from './charts.js';
 import { CREDITOS } from './creditos.js';
 
@@ -7,7 +7,7 @@ const CORES = { D: '#c62828', E: '#1f5fd6' };
 const nomeArq = (A, ext) => `${(A.rotulo || A.trial.nome).replace(/[^\w\-]+/g, '_')}_${new Date().toISOString().slice(0, 10)}.${ext}`;
 const dataBR = (iso) => iso ? iso.split('-').reverse().join('/') : '';
 
-async function imagem(tracos, titulo, shapes = [], legenda = false, setas = []) {
+async function imagem(tracos, titulo, shapes = [], legenda = false, setas = [], un = '°') {
   const div = document.createElement('div');
   div.style.cssText = 'position:fixed;left:-9999px;top:0;width:520px;height:300px';
   document.body.appendChild(div);
@@ -15,7 +15,7 @@ async function imagem(tracos, titulo, shapes = [], legenda = false, setas = []) 
     width: 520, height: 300, paper_bgcolor: '#fff', plot_bgcolor: '#fff', font: { size: 12, color: '#222' },
     title: { text: titulo, font: { size: 14 }, x: 0.02 }, margin: { l: setas.length ? 92 : 48, r: 10, t: 34, b: legenda ? 60 : 36 }, showlegend: legenda, annotations: setas,
     legend: { orientation: 'h', y: -0.22, font: { size: 10 } }, shapes,
-    xaxis: { range: [0, 100], title: { text: '% do ciclo', font: { size: 11 } }, gridcolor: '#e6e6e6' }, yaxis: { title: { text: setas.length ? '' : 'graus', font: { size: 11 } }, ticksuffix: '°', gridcolor: '#e6e6e6', zerolinecolor: '#999' },
+    xaxis: { range: [0, 100], title: { text: '% do ciclo', font: { size: 11 } }, gridcolor: '#e6e6e6' }, yaxis: { title: { text: setas.length ? '' : (un === '°' ? 'graus' : 'cm'), font: { size: 11 } }, ticksuffix: un === '°' ? '°' : ' cm', gridcolor: '#e6e6e6', zerolinecolor: '#999' },
   }, { staticPlot: true });
   const url = await Plotly.toImage(div, { format: 'jpeg', width: 780, height: 450 });
   Plotly.purge(div); div.remove();
@@ -96,7 +96,7 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
 
   // página de curvas
   pdf.addPage(); y = M;
-  txt('Ângulos ao longo do ciclo', M, y + 4, { s: 13, b: true });
+  txt('Curvas ao longo do ciclo', M, y + 4, { s: 13, b: true });
   txt('Linha = média; faixa = ±1 DP; tracejado = TO (dedos deixam o chão).  Vermelho = direito; azul = esquerdo.', M, y + 10, { s: 8, c: '#666' });
   y += 15;
   const w = (W - 2 * M - 6) / 2, h = w * 300 / 520;
@@ -105,7 +105,7 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
     if (i > 0 && i % 8 === 0) { rodape(); pdf.addPage(); y = M; }
     const k = i % 8;
     const shapes = ['D', 'E'].filter(l => R.rdMedio[l] != null).map(l => ({ type: 'line', x0: R.rdMedio[l], x1: R.rdMedio[l], yref: 'paper', y0: 0, y1: 1, line: { color: CORES[l], dash: 'dash', width: 1 } }));
-    const img = await imagem(tracosCurva(R.curvas, c, CORES, vis.dp), rot, shapes, false, vis.setas ? setasEixo(c, '#555', 11, -0.13) : []);
+    const img = await imagem(tracosCurva(R.curvas, c, CORES, vis.dp), rot, shapes, false, vis.setas ? setasEixo(c, '#555', 11, -0.13) : [], unidade(c));
     pdf.addImage(img, 'JPEG', M + (k % 2) * (w + 6), y + Math.floor(k / 2) * (h + 3), w, h);
   }
   rodape();
@@ -134,7 +134,7 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
     txt('Curvas médias: linha cheia = direito; tracejada = esquerdo.', M, y, { s: 8, c: '#666' }); y += 3;
     for (let i = 0; i < Math.min(4, ANG.length); i++) {
       const [c, rot] = ANG[i];
-      const img = await imagem(tracosComparacao(L, c), rot, [], true, vis.setas ? setasEixo(c, '#555', 11, -0.13) : []);
+      const img = await imagem(tracosComparacao(L, c), rot, [], true, vis.setas ? setasEixo(c, '#555', 11, -0.13) : [], unidade(c));
       const hh = w * 300 / 520;
       pdf.addImage(img, 'JPEG', M + (i % 2) * (w + 6), y + Math.floor(i / 2) * (hh + 3), w, hh);
     }

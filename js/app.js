@@ -1,7 +1,7 @@
 import { abrirZip, abrirArquivosDePasta, lerItensArrastados, carregarTrial, urlVideo, caminhoModelo } from './io.js';
 import { lerModelo, cinematica, valoresDoMot, centroMassa } from './model.js';
 import { criarVisor3D } from './viewer3d.js';
-import { detectarEventos, analisar, trechoEstavel, ANGULOS, VARS, PREDEF } from './gait.js';
+import { detectarEventos, analisar, trechoEstavel, ANGULOS, VARS, PREDEF, unidade } from './gait.js';
 import { gerarPDF, gerarExcel } from './report.js';
 import { tracosCurva, tracosComparacao, setasEixo, PALETA } from './charts.js';
 import { criarTimeline } from './timeline.js';
@@ -475,7 +475,7 @@ function desenharCurvas(A) {
     const shapes = ['D', 'E'].filter(l => R.rdMedio[l] != null).map(l => ({ type: 'line', x0: R.rdMedio[l], x1: R.rdMedio[l], yref: 'paper', y0: 0, y1: 1, line: { color: cores[l], dash: 'dash', width: 1 } }));
     Plotly.newPlot('cv-' + c, tracosCurva(R.curvas, c, cores, vis.dp), layoutBase({ title: { text: rot, font: { size: 12 }, x: 0.02 }, margin: { l: vis.setas ? 74 : 44, r: 8, t: 30, b: 34 }, showlegend: false, shapes,
       annotations: vis.setas ? setasEixo(c, css('--mut'), 10, -0.11) : [],
-      xaxis: { title: { text: '% do ciclo', font: { size: 10 } }, range: [0, 100] }, yaxis: { ticksuffix: '°' } }), { displayModeBar: false, responsive: true });
+      xaxis: { title: { text: '% do ciclo', font: { size: 10 } }, range: [0, 100] }, yaxis: { ticksuffix: unidade(c) === '°' ? '°' : ' cm' } }), { displayModeBar: false, responsive: true });
   }
 }
 
@@ -545,7 +545,7 @@ function desenharComparacao() {
   $('#comp-curvas').innerHTML = lista.map(([c]) => `<div class="curva" id="cc-${c}"></div>`).join('');
   for (const [c, rot] of lista) {
     Plotly.newPlot('cc-' + c, tracosComparacao(L, c), layoutBase({ title: { text: rot, font: { size: 12 }, x: 0.02 }, margin: { l: vis.setas ? 74 : 44, r: 8, t: 30, b: 32 }, showlegend: c === lista[0][0], legend: { orientation: 'h', y: -0.25, font: { size: 10 } },
-      annotations: vis.setas ? setasEixo(c, css('--mut'), 10, -0.11) : [], xaxis: { range: [0, 100] }, yaxis: { ticksuffix: '°' } }), { displayModeBar: false, responsive: true });
+      annotations: vis.setas ? setasEixo(c, css('--mut'), 10, -0.11) : [], xaxis: { range: [0, 100] }, yaxis: { ticksuffix: unidade(c) === '°' ? '°' : ' cm' } }), { displayModeBar: false, responsive: true });
   }
 }
 

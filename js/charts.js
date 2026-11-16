@@ -8,7 +8,7 @@ export function tracosCurva(curvas, c, cores, comDP = true) {
     const cv = curvas[c]?.[l]; if (!cv) continue;
     const m = Array.from(cv.m), s = Array.from(cv.s);
     if (comDP) tr.push({ x: [...x, ...x.slice().reverse()], y: [...m.map((v, i) => v + s[i]), ...m.map((v, i) => v - s[i]).reverse()], fill: 'toself', fillcolor: hexA(cores[l], 0.15), line: { width: 0 }, hoverinfo: 'skip', showlegend: false });
-    tr.push({ x, y: m, name: l === 'D' ? 'Direito' : 'Esquerdo', line: { color: cores[l], width: 2 }, hovertemplate: '%{x}%: %{y:.1f}°<extra>' + l + '</extra>' });
+    tr.push({ x, y: m, name: l === 'D' ? 'Direito' : 'Esquerdo', line: { color: cores[l], width: 2 }, hovertemplate: '%{x}%: %{y:.1f}' + (c.startsWith('com_') ? ' cm' : '°') + '<extra>' + l + '</extra>' });
   }
   return tr;
 }
