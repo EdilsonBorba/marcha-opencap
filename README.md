@@ -13,17 +13,18 @@ Everything runs in the browser: patient files are **never uploaded** to any serv
 ## What it does
 1. Reads the **ZIP** downloaded from OpenCap, the unzipped **folder** (no size limit), or loads directly from your **OpenCap account** (login, experimental).
 2. Detects **TD** (*touchdown*: the foot touches the ground) and **TO** (*toe-off*: the toes leave the ground) events, which you **check and edit** on the video and on the 3D skeleton.
-3. Detects the **steady window** (removes treadmill acceleration and overground start/end).
-4. **Treadmill (with incline) or overground.** On the treadmill, lengths come from the entered belt speed.
-5. Computes speed, cadence, step and stride length, step width, stance, swing, double support or flight time, **right–left symmetry** and **variability (CV)**.
-6. Curves for hip, knee, ankle, pelvis, trunk and **center of mass in 3 axes** (mean ± SD, 0–100 % of the cycle), with direction arrows on the axis.
-7. **Normative band** from the literature (healthy adults), chosen by speed and age group.
-8. Shows the **OpenSim model skeleton in 3D** next to the video (forward kinematics of the `.osim` with the `.mot` angles; validated: model markers within ~2 cm of OpenCap's) and computes the **center of mass** from the segment masses of the scaled model.
-9. Participant data (sex, age, height, mass) come from OpenCap and can be corrected.
-10. Warns when tracking looks poor (regularity index).
-11. **Compares** trials or sessions (before × after, conditions), as many as you like.
-12. Generates a **PDF report** and an **Excel** file with all data.
-13. **Saves the analysis** to a `.json` file (marks, settings and results). To compare later, just open the file, even without the ZIP; with the ZIP, everything becomes editable again.
+3. **Low-pass filter** for all data (zero-lag 4th-order Butterworth; automatic 6 Hz walking / 10 Hz running, editable, or off).
+4. Detects the **steady window** (removes treadmill acceleration and overground start/end).
+5. **Treadmill (with incline) or overground.** On the treadmill, lengths come from the entered belt speed.
+6. Computes speed, cadence, step and stride length, step width, stance, swing, double support or flight time, **right–left symmetry** and **variability (CV)**.
+7. Curves for hip, knee, ankle, pelvis, trunk and **center of mass in 3 axes** (mean ± SD, 0–100 % of the cycle), with direction arrows on the axis.
+8. **Normative band** from the literature (healthy adults), chosen by speed and age group.
+9. Shows the **OpenSim model skeleton in 3D** next to the video (forward kinematics of the `.osim` with the `.mot` angles; validated: model markers within ~2 cm of OpenCap's) and computes the **center of mass** from the segment masses of the scaled model.
+10. Participant data (sex, age, height, mass) come from OpenCap and can be corrected.
+11. Warns when tracking looks poor (regularity index).
+12. **Compares** trials or sessions (before × after, conditions), as many as you like.
+13. Generates a **PDF report** and an **Excel** file with all data.
+14. **Saves the analysis** to a `.json` file (marks, settings and results). To compare later, just open the file, even without the ZIP; with the ZIP, everything becomes editable again.
 
 ## About the events (TD and TO)
 Detection is automatic and you choose the method:

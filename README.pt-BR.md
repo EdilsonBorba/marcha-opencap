@@ -13,17 +13,18 @@ Tudo roda no navegador: os arquivos do paciente **não são enviados** a nenhum 
 ## O que faz
 1. Lê o **ZIP** baixado do OpenCap, a **pasta** descompactada (sem limite de tamanho) ou carrega direto da **conta do OpenCap** (login, experimental).
 2. Detecta os eventos **TD** (*touchdown*: o pé toca o chão) e **TO** (*toe-off*: os dedos deixam o chão), que você **confere e edita** no vídeo e no esqueleto 3D.
-3. Detecta o **trecho estável** (tira a aceleração da esteira e o início/fim no solo).
-4. **Esteira (com inclinação) ou solo.** Na esteira, os comprimentos vêm da velocidade informada.
-5. Calcula velocidade, cadência, passo, passada, largura do passo, apoio, balanço, duplo apoio ou tempo de voo, **simetria D×E** e **variabilidade (CV)**.
-6. Curvas de quadril, joelho, tornozelo, pelve, tronco e **centro de massa nos 3 eixos** (média ± DP, 0–100 % do ciclo), com setas de sentido no eixo.
-7. **Faixa de normalidade** da literatura (adultos saudáveis), escolhida pela velocidade e pela faixa etária.
-8. Mostra o **esqueleto do modelo do OpenSim em 3D** ao lado do vídeo (cinemática direta do `.osim` com os ângulos do `.mot`; validado: marcadores do modelo a ~2 cm dos do OpenCap) e calcula o **centro de massa** pelas massas dos segmentos do modelo escalado.
-9. Dados do participante (sexo, idade, altura, massa) vêm do OpenCap e podem ser corrigidos.
-10. Avisa quando o rastreamento parece ruim (índice de regularidade).
-11. **Compara** trials ou sessões (antes × depois, condições), quantos quiser.
-12. Gera **laudo em PDF** e **Excel** com todos os dados.
-13. **Salva a análise** num arquivo `.json` (marcações, ajustes e resultados). Para comparar depois, basta abrir o arquivo, mesmo sem o ZIP; com o ZIP, tudo volta a ficar editável.
+3. **Filtro passa-baixa** em todos os dados (Butterworth de 4ª ordem sem defasagem; automático 6 Hz marcha / 10 Hz corrida, editável ou desligado).
+4. Detecta o **trecho estável** (tira a aceleração da esteira e o início/fim no solo).
+5. **Esteira (com inclinação) ou solo.** Na esteira, os comprimentos vêm da velocidade informada.
+6. Calcula velocidade, cadência, passo, passada, largura do passo, apoio, balanço, duplo apoio ou tempo de voo, **simetria D×E** e **variabilidade (CV)**.
+7. Curvas de quadril, joelho, tornozelo, pelve, tronco e **centro de massa nos 3 eixos** (média ± DP, 0–100 % do ciclo), com setas de sentido no eixo.
+8. **Faixa de normalidade** da literatura (adultos saudáveis), escolhida pela velocidade e pela faixa etária.
+9. Mostra o **esqueleto do modelo do OpenSim em 3D** ao lado do vídeo (cinemática direta do `.osim` com os ângulos do `.mot`; validado: marcadores do modelo a ~2 cm dos do OpenCap) e calcula o **centro de massa** pelas massas dos segmentos do modelo escalado.
+10. Dados do participante (sexo, idade, altura, massa) vêm do OpenCap e podem ser corrigidos.
+11. Avisa quando o rastreamento parece ruim (índice de regularidade).
+12. **Compara** trials ou sessões (antes × depois, condições), quantos quiser.
+13. Gera **laudo em PDF** e **Excel** com todos os dados.
+14. **Salva a análise** num arquivo `.json` (marcações, ajustes e resultados). Para comparar depois, basta abrir o arquivo, mesmo sem o ZIP; com o ZIP, tudo volta a ficar editável.
 
 ## Sobre os eventos (TD e TO)
 A detecção é automática e você escolhe o método:

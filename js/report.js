@@ -47,11 +47,11 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
   txt(`Relatório de análise da ${R.atividade === 'corrida' ? 'corrida' : 'marcha'}`, M, y + 5, { s: 16, b: true }); y += 12;
   const cab = [
     ['Paciente', D.paciente || '-'], ['Data', dataBR(D.data) || '-'], ['Avaliador(a)', D.avaliador || '-'],
-    ['Condição', A.rotulo || A.trial.nome], ['Local', A.cfg.ambiente === 'esteira' ? `Esteira${A.cfg.velEsteira ? ' · ' + f(A.cfg.velEsteira, 1) + ' km/h' : ''}` : 'Solo'],
+    ['Condição', A.rotulo || A.trial.nome], ['Filtro', A.trial.fc ? `${f(A.trial.fc, A.trial.fc % 1 ? 1 : 0)} Hz` : 'sem filtro'], ['Local', A.cfg.ambiente === 'esteira' ? `Esteira${A.cfg.velEsteira ? ' · ' + f(A.cfg.velEsteira, 1) + ' km/h' : ''}` : 'Solo'],
     ['Passadas analisadas', `${R.passadas.filter(p => !p.excluida && p.lado === 'D').length} D · ${R.passadas.filter(p => !p.excluida && p.lado === 'E').length} E`],
   ];
   cab.forEach(([k, v], i) => { const x = M + (i % 3) * 60, yy = y + Math.floor(i / 3) * 10; txt(k, x, yy, { s: 7.5, c: '#777' }); txt(v, x, yy + 4.5, { s: 10 }); });
-  y += 22; linha(y); y += 7;
+  y += Math.ceil(cab.length / 3) * 10 + 2; linha(y); y += 7;
 
   // destaques
   const kp = [
@@ -161,7 +161,7 @@ export function gerarExcel(A, D, comparacao) {
   const info = [
     ['Paciente', D.paciente], ['Data', dataBR(D.data)], ['Avaliador(a)', D.avaliador], ['Condição', A.rotulo], ['Sessão', A.sessao.nome], ['Trial', A.trial.nome],
     ['Local', A.cfg.ambiente], ['Velocidade da esteira (km/h)', A.cfg.velEsteira ?? ''], ['Atividade', R.atividade], ['Método de eventos', R.metodo],
-    ['Trecho analisado (s)', A.cfg.janela ? `${f(t[A.cfg.janela[0]], 2)} a ${f(t[A.cfg.janela[1]], 2)}` : 'trial inteiro'], ['Observações', D.obs], [],
+    ['Filtro passa-baixa (Hz; Butterworth 4ª ordem, sem defasagem)', A.trial.fc || 'sem filtro'], ['Trecho analisado (s)', A.cfg.janela ? `${f(t[A.cfg.janela[0]], 2)} a ${f(t[A.cfg.janela[1]], 2)}` : 'trial inteiro'], ['Observações', D.obs], [],
     ['Variável', 'Unidade', 'Direito média', 'Direito DP', 'Direito n', 'Esquerdo média', 'Esquerdo DP', 'Esquerdo n', 'Simetria %', 'Geral média', 'Geral DP', 'CV %'],
   ];
   for (const [k, rot, u] of VARS) {

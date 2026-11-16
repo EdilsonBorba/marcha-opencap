@@ -23,6 +23,25 @@ export function filtfilt(x, fc, fs) {
   return y.slice(pad, pad + x.length);
 }
 
+// Filtro do trial: Butterworth passa-baixa de 2ª ordem aplicado ida e volta (= 4ª ordem, sem defasagem).
+// A frequência é corrigida para o duplo passe (Winter: fc / 0,802), para que o corte de −3 dB fique em fc.
+// fc = 0 ou vazio: devolve os dados como vieram do OpenCap.
+export function filtrarTrial(bruto, fc) {
+  if (!(fc > 0)) return { ...bruto, fc: 0 };
+  const fs = 1 / (bruto.mot.time[1] - bruto.mot.time[0]);
+  const fcc = fc / 0.802;
+  const cols = {};
+  for (const [k, v] of Object.entries(bruto.mot.cols)) cols[k] = k === 'time' ? v : filtfilt(v, fcc, fs);
+  let trc = bruto.trc;
+  if (trc) {
+    const fsm = trc.rate || 1 / (trc.time[1] - trc.time[0]);
+    const markers = {};
+    for (const [k, m] of Object.entries(trc.markers)) markers[k] = { x: filtfilt(m.x, fcc, fsm), y: filtfilt(m.y, fcc, fsm), z: filtfilt(m.z, fcc, fsm) };
+    trc = { ...trc, markers };
+  }
+  return { ...bruto, mot: { ...bruto.mot, cols }, trc, fc };
+}
+
 const media = (a) => a.reduce((s, v) => s + v, 0) / a.length;
 const dp = (a) => { if (a.length < 2) return NaN; const m = media(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - 1)); };
 export { media, dp };

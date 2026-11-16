@@ -1,7 +1,7 @@
 import { abrirZip, abrirArquivosDePasta, lerItensArrastados, carregarTrial, urlVideo, caminhoModelo } from './io.js';
 import { lerModelo, cinematica, valoresDoMot, centroMassa } from './model.js';
 import { criarVisor3D } from './viewer3d.js';
-import { detectarEventos, analisar, trechoEstavel, ANGULOS, VARS, PREDEF, unidade } from './gait.js';
+import { detectarEventos, analisar, trechoEstavel, filtrarTrial, ANGULOS, VARS, PREDEF, unidade } from './gait.js';
 import { gerarPDF, gerarExcel } from './report.js';
 import { tracosCurva, tracosComparacao, setasEixo, PALETA, linhasComparacao } from './charts.js';
 import { criarTimeline } from './timeline.js';
@@ -175,18 +175,28 @@ async function prepararAnalise(k) {
   if (A) return A;
   const [sid, nome] = k.split('|');
   const sessao = estado.sessoes.find(s => s.id === sid);
-  const trial = await carregarTrial(sessao, nome);
-  if (!trial.trc) throw new Error('Este trial não tem MarkerData/' + nome + '.trc.');
-  const mod = await obterModelo(sessao);
-  if (mod) trial.com = trajetoriaCM(mod, trial.mot);
-  const ant = [...estado.analises.values()].pop();  // herda local e inclinação do trial anterior
-  A = { k, sessao, trial, rotulo: nome,
-    cfg: { ambiente: ant?.cfg.ambiente || 'esteira', velEsteira: null, incl: ant?.cfg.incl ?? null, inclUn: ant?.cfg.inclUn || 'pct', atividade: '', metodo: '', janela: null, excluidos: null } };
+  const bruto = await carregarTrial(sessao, nome);
+  if (!bruto.trc) throw new Error('Este trial não tem MarkerData/' + nome + '.trc.');
+  const ant = [...estado.analises.values()].filter(x => !x.soSalvo).pop();  // herda local, inclinação e filtro do trial anterior
+  A = { k, sessao, bruto, rotulo: nome,
+    cfg: { ambiente: ant?.cfg.ambiente || 'esteira', velEsteira: null, incl: ant?.cfg.incl ?? null, inclUn: ant?.cfg.inclUn || 'pct', atividade: '', metodo: '', janela: null, excluidos: null, filtro: ant?.cfg.filtro ?? null } };
   estado.analises.set(k, A);
-  detectar(A);
   const salvo = estado.salvos.get(`${sessao.nome}|${nome}`);
+  if (salvo?.cfg && 'filtro' in salvo.cfg) A.cfg.filtro = salvo.cfg.filtro;
+  await aplicarFiltro(A);
+  detectar(A);
+  // filtro automático: se a detecção indicar corrida, refiltra a 10 Hz e detecta de novo
+  if (A.cfg.filtro == null && A.det.atividade === 'corrida' && A.trial.fc !== fcEfetiva(A)) { await aplicarFiltro(A); detectar(A); }
   if (salvo) aplicarSalvo(A, salvo);
   return A;
+}
+// filtro: null = automático (6 Hz marcha, 10 Hz corrida); 0 = sem filtro; número = Hz
+const atividadeDe = (A) => A.cfg.atividade || A.det?.atividade || 'marcha';
+const fcEfetiva = (A) => A.cfg.filtro === 0 ? 0 : (A.cfg.filtro ?? (atividadeDe(A) === 'corrida' ? 10 : 6));
+async function aplicarFiltro(A) {
+  A.trial = filtrarTrial(A.bruto, fcEfetiva(A));
+  const mod = await obterModelo(A.sessao);
+  if (mod) A.trial.com = trajetoriaCM(mod, A.trial.mot);
 }
 function aplicarSalvo(A, s) {
   A.rotulo = s.rotulo || A.rotulo;
@@ -220,6 +230,7 @@ function preencherForm(A) {
   $$('.so-esteira').forEach(e => e.style.display = c.ambiente === 'esteira' ? '' : 'none');
   $('#sel-ativ').value = c.atividade;
   $('#sel-metodo').value = c.metodo;
+  $('#in-filtro').value = c.filtro == null ? '' : c.filtro;
   const m = A.sessao.meta || {};
   $('#pt-sexo').value = m.sexo || ''; $('#pt-idade').value = m.idade ?? ''; $('#pt-altura').value = m.altura ?? ''; $('#pt-massa').value = m.massa ?? '';
   infoTrial(A);
@@ -230,7 +241,9 @@ function infoTrial(A) {
     ? `<br>Inclinação informada: ${fmt(Math.atan(inclPct(A.cfg) / 100) * 180 / Math.PI, 1)}° = ${fmt(inclPct(A.cfg), 1)}%`
     : `<br>Inclinação estimada: ${fmt(d.inclinacao, 1)}° = ${fmt(Math.tan(d.inclinacao * Math.PI / 180) * 100, 1)}% <span class="dica">· estimativa pelos pés apoiados, erro de cerca de ±2°; se souber, informe acima</span>`;
   $('#trial-info').classList.remove('erro');
-  $('#trial-info').innerHTML = `Duração ${fmt(t[t.length - 1], 1)} s · ${fmt(1 / (t[1] - t[0]), 0)} quadros/s · atividade: <b>${A.cfg.atividade || d.atividade}</b> · método: ${d.metodo}` + incl +
+  const fc = A.trial.fc;
+  $('#trial-info').innerHTML = `Duração ${fmt(t[t.length - 1], 1)} s · ${fmt(1 / (t[1] - t[0]), 0)} quadros/s · atividade: <b>${A.cfg.atividade || d.atividade}</b> · método: ${d.metodo}` +
+    `<br>Filtro: ${fc ? `Butterworth passa-baixa ${fmt(fc, fc % 1 ? 1 : 0)} Hz, 4ª ordem, sem defasagem${A.cfg.filtro == null ? ' (automático)' : ''}` : 'sem filtro (dados como saem do OpenCap)'}` + incl +
     (A.restaurado ? `<br><b>Marcações e ajustes restaurados</b> da análise salva em ${new Date(A.restaurado).toLocaleDateString('pt-BR')}.` : '') +
     (j ? `<br>Trecho analisado: <b>${fmt(t[j[0]], 1)} a ${fmt(t[j[1]], 1)} s</b>${A.janelaAuto ? ' (trecho estável detectado automaticamente)' : ''}` : '<br>Trecho analisado: trial inteiro');
   const al = $('#alerta-qualidade');
@@ -244,13 +257,20 @@ const atual = () => estado.analises.get(estado.atual);
 for (const [id, campo] of [['pt-sexo', 'sexo'], ['pt-idade', 'idade'], ['pt-altura', 'altura'], ['pt-massa', 'massa']])
   $('#' + id).onchange = (e) => { const A = atual(); if (!A) return; A.sessao.meta ||= {}; A.sessao.meta[campo] = campo === 'sexo' ? e.target.value : num(e.target.value); redesenharResultados(); };
 const num = (v) => { const x = parseFloat(String(v).replace(',', '.')); return isFinite(x) ? x : null; };
-function redetectar() { const A = atual(); if (!A) return; detectar(A); preencherForm(A); tl.set(A); tl.redesenhar(); desenharSinal(); recalcular(); }
+async function redetectar() { const A = atual(); if (!A) return; await aplicarFiltro(A); detectar(A); preencherForm(A); tl.set(A); tl.redesenhar(); desenharSinal(); recalcular(); prepararVisor3D(A); }
 $('#in-rotulo').oninput = (e) => { const A = atual(); if (A) { A.rotulo = e.target.value; montarComparar(); } };
 $$('input[name=amb]').forEach(r => r.onchange = () => { const A = atual(); if (!A) return; A.cfg.ambiente = r.value; redetectar(); });
 $('#in-vel').oninput = (e) => { const A = atual(); if (!A) return; A.cfg.velEsteira = num(e.target.value); recalcular(); };
 $('#in-incl').onchange = (e) => { const A = atual(); if (!A) return; A.cfg.incl = num(e.target.value); redetectar(); };
 $('#sel-incl-un').onchange = (e) => { const A = atual(); if (!A) return; A.cfg.inclUn = e.target.value; if (A.cfg.incl != null) redetectar(); };
 $('#sel-ativ').onchange = (e) => { const A = atual(); if (!A) return; A.cfg.atividade = e.target.value; redetectar(); };
+$('#in-filtro').onchange = async (e) => {
+  const A = atual(); if (!A) return;
+  const v = String(e.target.value).trim();
+  A.cfg.filtro = v === '' ? null : Math.max(0, num(v) ?? 0);
+  await aplicarFiltro(A);           // mantém as marcações; recalcula tudo com os dados refiltrados
+  infoTrial(A); desenharSinal(); recalcular(); prepararVisor3D(A);
+};
 $('#sel-metodo').onchange = (e) => { const A = atual(); if (!A) return; A.cfg.metodo = e.target.value; redetectar(); };
 
 // ---------------- 3. revisão ----------------
