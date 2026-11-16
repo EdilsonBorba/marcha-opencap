@@ -1,5 +1,5 @@
 import { ANGULOS, VARS, unidade } from './gait.js';
-import { tracosCurva, tracosComparacao, setasEixo, PALETA } from './charts.js';
+import { tracosCurva, tracosComparacao, setasEixo, PALETA, linhasComparacao } from './charts.js';
 import { CREDITOS } from './creditos.js';
 
 const f = (v, d = 1) => (v == null || !isFinite(v)) ? '-' : (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -105,7 +105,7 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
     if (i > 0 && i % 8 === 0) { rodape(); pdf.addPage(); y = M; }
     const k = i % 8;
     const shapes = ['D', 'E'].filter(l => R.rdMedio[l] != null).map(l => ({ type: 'line', x0: R.rdMedio[l], x1: R.rdMedio[l], yref: 'paper', y0: 0, y1: 1, line: { color: CORES[l], dash: 'dash', width: 1 } }));
-    const img = await imagem(tracosCurva(R.curvas, c, CORES, vis.dp), rot, shapes, false, vis.setas ? setasEixo(c, '#555', 11, -0.13) : [], unidade(c));
+    const img = await imagem(tracosCurva(R.curvas, c, CORES, vis.dp), rot, shapes, false, vis.setas ? setasEixo(c, '#555', 11, 56) : [], unidade(c));
     pdf.addImage(img, 'JPEG', M + (k % 2) * (w + 6), y + Math.floor(k / 2) * (h + 3), w, h);
   }
   rodape();
@@ -119,24 +119,24 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
     txt('Variável', M, y, { s: 8, b: true });
     L.forEach((B, i) => txt(String(B.rotulo).slice(0, 18), M + 62 + cw * (i + 1), y, { s: 8, b: true, c: PALETA[i % PALETA.length], al: 'right' }));
     y += 2; linha(y); y += 4.5;
-    const vs = [['velocidade', 'Velocidade (m/s)', 2], ['cadencia', 'Cadência (passos/min)', 0], ['passada', 'Passada (m)', 2], ['largura', 'Largura do passo (cm)', 1], ['apoioPct', 'Apoio (%)', 1], ['duplaPct', 'Duplo apoio (%)', 1], ['voo', 'Tempo de voo (s)', 3]];
-    for (const [k, rot, d] of vs) {
-      if (!L.some(B => B.res.tab[k]?.geral?.m != null)) continue;
-      txt(rot, M, y, { s: 8.5 }); L.forEach((B, i) => txt(f(B.res.tab[k]?.geral?.m, d), M + 62 + cw * (i + 1), y, { s: 8.5, al: 'right' })); y += 5;
+    for (const r of linhasComparacao(L, vis, f)) {
+      if (y > 270) { rodape(); pdf.addPage(); y = M + 6; }
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
+      txt(pdf.splitTextToSize(r.rotulo.replace(/·/g, '-'), 60)[0], M, y, { s: 8 });
+      r.valores.forEach((v, i) => txt(v.replace(/–/g, '-'), M + 62 + cw * (i + 1), y, { s: 8.5, al: 'right' }));
+      y += 4.8;
     }
-    txt('Simetria do apoio (%)', M, y, { s: 8.5 }); L.forEach((B, i) => txt(f(B.res.tab.apoioPct?.si, 1), M + 62 + cw * (i + 1), y, { s: 8.5, al: 'right' })); y += 5;
-    L[0].res.pontos.forEach((p, j) => {
-      if (!vis.curvas.includes(p.curva) || !vis.pontos) return;
-      txt(p.rotulo + ' (D/E)', M, y, { s: 8 });
-      L.forEach((B, i) => txt(`${f(B.res.pontos[j].D, 0)} / ${f(B.res.pontos[j].E, 0)}`, M + 62 + cw * (i + 1), y, { s: 8.5, al: 'right' })); y += 5;
-    });
-    y += 4;
-    txt('Curvas médias: linha cheia = direito; tracejada = esquerdo.', M, y, { s: 8, c: '#666' }); y += 3;
-    for (let i = 0; i < Math.min(4, ANG.length); i++) {
-      const [c, rot] = ANG[i];
-      const img = await imagem(tracosComparacao(L, c), rot, [], true, vis.setas ? setasEixo(c, '#555', 11, -0.13) : [], unidade(c));
-      const hh = w * 300 / 520;
-      pdf.addImage(img, 'JPEG', M + (i % 2) * (w + 6), y + Math.floor(i / 2) * (hh + 3), w, hh);
+    // curvas: todas as escolhidas, 6 por página
+    rodape(); pdf.addPage(); y = M;
+    txt('Comparação · curvas médias (linha cheia = direito; tracejada = esquerdo)', M, y + 4, { s: 11, b: true }); y += 9;
+    const ANGc = ANG.length ? ANG : [];
+    const hh = w * 300 / 520;
+    for (let i = 0; i < ANGc.length; i++) {
+      const k = i % 6;
+      if (i > 0 && k === 0) { rodape(); pdf.addPage(); y = M + 4; }
+      const [c, rot] = ANGc[i];
+      const img = await imagem(tracosComparacao(L, c), rot, [], true, vis.setas ? setasEixo(c, '#555', 11, 56) : [], unidade(c));
+      pdf.addImage(img, 'JPEG', M + (k % 2) * (w + 6), y + Math.floor(k / 2) * (hh + 4), w, hh);
     }
     rodape();
   }

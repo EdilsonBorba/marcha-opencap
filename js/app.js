@@ -3,7 +3,7 @@ import { lerModelo, cinematica, valoresDoMot, centroMassa } from './model.js';
 import { criarVisor3D } from './viewer3d.js';
 import { detectarEventos, analisar, trechoEstavel, ANGULOS, VARS, PREDEF, unidade } from './gait.js';
 import { gerarPDF, gerarExcel } from './report.js';
-import { tracosCurva, tracosComparacao, setasEixo, PALETA } from './charts.js';
+import { tracosCurva, tracosComparacao, setasEixo, PALETA, linhasComparacao } from './charts.js';
 import { criarTimeline } from './timeline.js';
 import { desenharEsqueleto } from './skeleton.js';
 import * as api from './api.js';
@@ -474,7 +474,7 @@ function desenharCurvas(A) {
   for (const [c, rot] of lista) {
     const shapes = ['D', 'E'].filter(l => R.rdMedio[l] != null).map(l => ({ type: 'line', x0: R.rdMedio[l], x1: R.rdMedio[l], yref: 'paper', y0: 0, y1: 1, line: { color: cores[l], dash: 'dash', width: 1 } }));
     Plotly.newPlot('cv-' + c, tracosCurva(R.curvas, c, cores, vis.dp), layoutBase({ title: { text: rot, font: { size: 12 }, x: 0.02 }, margin: { l: vis.setas ? 74 : 44, r: 8, t: 30, b: 34 }, showlegend: false, shapes,
-      annotations: vis.setas ? setasEixo(c, css('--mut'), 10, -0.11) : [],
+      annotations: vis.setas ? setasEixo(c, css('--mut'), 10, 48) : [],
       xaxis: { title: { text: '% do ciclo', font: { size: 10 } }, range: [0, 100] }, yaxis: { ticksuffix: unidade(c) === '°' ? '°' : ' cm' } }), { displayModeBar: false, responsive: true });
   }
 }
@@ -528,24 +528,14 @@ function desenharComparacao() {
   const auto = L.filter(A => A.auto).map(A => A.rotulo), semVel = L.filter(A => A.cfg.ambiente === 'esteira' && !A.cfg.velEsteira).map(A => A.rotulo);
   if (auto.length) avisos.push(`Analisado(s) automaticamente, sem conferência dos eventos: <b>${auto.map(esc).join(', ')}</b>. Para conferir, escolha o trial no passo 2.`);
   if (semVel.length) avisos.push(`Sem velocidade da esteira (velocidade e comprimentos ficam em branco): <b>${semVel.map(esc).join(', ')}</b>. Informe no passo 2.`);
-  const vars = [['velocidade', 'Velocidade (m/s)', 2], ['cadencia', 'Cadência (passos/min)', 0], ['passada', 'Passada (m)', 2], ['largura', 'Largura do passo (cm)', 1], ['apoio', 'Tempo de apoio (s)', 3], ['apoioPct', 'Apoio (%)', 1], ['duplaPct', 'Duplo apoio (%)', 1], ['voo', 'Tempo de voo (s)', 3]];
   let h = `<table class="tab"><tr><th>Variável</th>${L.map((A, i) => `<th style="color:${PALETA[i % PALETA.length]}">${esc(A.rotulo)}</th>`).join('')}</tr>`;
-  for (const [k, rot, d] of vars) {
-    if (!vis.vars.includes(k)) continue;
-    if (!L.some(A => A.res.tab[k]?.geral?.m != null)) continue;
-    h += `<tr><td>${rot}</td>${L.map(A => `<td>${fmt(A.res.tab[k]?.geral?.m, d)}</td>`).join('')}</tr>`;
-  }
-  h += `<tr><td>Simetria do apoio (%)</td>${L.map(A => `<td>${fmt(A.res.tab.apoioPct?.si, 1)}</td>`).join('')}</tr>`;
-  L[0].res.pontos.forEach((p, idx) => {
-    if (!vis.curvas.includes(p.curva)) return;
-    h += `<tr><td>${p.rotulo} (D / E)</td>${L.map(A => `<td>${fmt(A.res.pontos[idx].D, 0)} / ${fmt(A.res.pontos[idx].E, 0)}</td>`).join('')}</tr>`;
-  });
+  for (const r of linhasComparacao(L, vis, fmt)) h += `<tr><td>${esc(r.rotulo)}</td>${r.valores.map(v => `<td>${v}</td>`).join('')}</tr>`;
   out.innerHTML = (avisos.length ? `<div class="alerta">${avisos.join('<br>')}</div>` : '') + h + '</table><p class="dica">Curvas: linha cheia = direito, tracejada = esquerdo.</p><div class="curvas" id="comp-curvas"></div>';
-  const lista = ANGULOS.filter(a => vis.curvas.includes(a[0]));
+  const lista = ANGULOS.filter(a => vis.curvas.includes(a[0]) && L.some(A => A.res.curvas[a[0]] && Object.keys(A.res.curvas[a[0]]).length));
   $('#comp-curvas').innerHTML = lista.map(([c]) => `<div class="curva" id="cc-${c}"></div>`).join('');
   for (const [c, rot] of lista) {
     Plotly.newPlot('cc-' + c, tracosComparacao(L, c), layoutBase({ title: { text: rot, font: { size: 12 }, x: 0.02 }, margin: { l: vis.setas ? 74 : 44, r: 8, t: 30, b: 32 }, showlegend: c === lista[0][0], legend: { orientation: 'h', y: -0.25, font: { size: 10 } },
-      annotations: vis.setas ? setasEixo(c, css('--mut'), 10, -0.11) : [], xaxis: { range: [0, 100] }, yaxis: { ticksuffix: unidade(c) === '°' ? '°' : ' cm' } }), { displayModeBar: false, responsive: true });
+      annotations: vis.setas ? setasEixo(c, css('--mut'), 10, 48) : [], xaxis: { range: [0, 100] }, yaxis: { ticksuffix: unidade(c) === '°' ? '°' : ' cm' } }), { displayModeBar: false, responsive: true });
   }
 }
 
