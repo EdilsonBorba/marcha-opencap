@@ -92,6 +92,7 @@ function preencherForm(A) {
   $('#trial-info').classList.remove('erro');
   const j = c.janela;
   $('#trial-info').innerHTML = `Duração ${fmt(t[t.length - 1], 1)} s · ${fmt(1 / (t[1] - t[0]), 0)} quadros/s · atividade detectada: <b>${d.atividade}</b> · método: ${d.metodo}` +
+    `<br>Inclinação estimada do chão/esteira: ${fmt(d.inclinacao, 1)}° (ântero-posterior) · ${fmt(d.inclLateral, 1)}° (lateral) <span class="dica">(estimativa a partir dos pés apoiados; precisão de cerca de ±2°)</span>` +
     (j ? `<br>Trecho analisado: <b>${fmt(t[j[0]], 1)} a ${fmt(t[j[1]], 1)} s</b>${A.janelaAuto ? ' (trecho estável detectado automaticamente; ajuste no passo 3)' : ''}` : '<br>Trecho analisado: trial inteiro');
   const al = $('#alerta-qualidade');
   if (d.qualidade < 0.6) {

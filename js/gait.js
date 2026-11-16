@@ -88,7 +88,31 @@ function regularidade(sig, fs, T) {
 // ---------- eventos ----------
 // Marcha: Zeni et al. (2008) — CI = calcâneo mais à frente do sacro; RD = dedos mais atrás do sacro.
 // Corrida: CI por Zeni; RD = pico de extensão do joelho (Fellin et al., 2010).
-// metodo: 'zeni' | 'vertical' | undefined (automático: marcha → zeni; corrida → vertical)
+// Plano do chão/esteira: ajusta y = a + b·u + c·v (u = ântero-posterior, v = médio-lateral) nos pontos
+// em que os pés estão apoiados (20 % mais baixos de cada marcador). Funciona com esteira inclinada e
+// com o chão do OpenCap levemente torto. Devolve a altura de um marcador acima desse plano.
+export function planoChao(trc, d) {
+  const P = marcadoresPe(trc);
+  const mks = [P.calcR, P.calcL, P.toeR, P.toeL];
+  const rows = [];
+  for (const m of mks) {
+    const ys = Array.from(m.y).sort((a, b) => a - b), lim = ys[Math.floor(0.2 * ys.length)];
+    for (let i = 0; i < m.y.length; i++) if (m.y[i] <= lim) {
+      const u = m.x[i] * d.x + m.z[i] * d.z, v = -m.x[i] * d.z + m.z[i] * d.x;
+      rows.push([1, u, v, m.y[i]]);
+    }
+  }
+  // mínimos quadrados 3×3
+  const A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], bb = [0, 0, 0];
+  for (const r of rows) for (let i = 0; i < 3; i++) { bb[i] += r[i] * r[3]; for (let j = 0; j < 3; j++) A[i][j] += r[i] * r[j]; }
+  const det = (M) => M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) - M[0][1] * (M[1][0] * M[2][2] - M[1][2] * M[2][0]) + M[0][2] * (M[1][0] * M[2][1] - M[1][1] * M[2][0]);
+  const D = det(A), coef = [0, 1, 2].map(k => det(A.map((row, i) => row.map((v, j) => j === k ? bb[i] : v))) / D);
+  const [a, b, c] = coef;
+  const altura = (m) => Float64Array.from(m.y, (y, i) => y - (a + b * (m.x[i] * d.x + m.z[i] * d.z) + c * (-m.x[i] * d.z + m.z[i] * d.x)));
+  return { altura, inclinacao: Math.atan(b) * 180 / Math.PI, inclLateral: Math.atan(c) * 180 / Math.PI };
+}
+
+// metodo: 'zeni' | 'patoz' | 'vertical' | undefined (automático: marcha → zeni; corrida → patoz)
 export function detectarEventos(trc, mot, ambiente, atividade, metodoEscolhido) {
   const fs = trc.rate || 1 / (trc.time[1] - trc.time[0]);
   const P = marcadoresPe(trc), d = direcao(trc, ambiente);
@@ -104,14 +128,56 @@ export function detectarEventos(trc, mot, ambiente, atividade, metodoEscolhido) 
   const cadencia = 120 / T;
   const ativ = atividade || (cadencia >= 140 ? 'corrida' : 'marcha');
   const qualidade = Math.min(regularidade(sinais.calcR, fs, T), regularidade(sinais.calcL, fs, T));
-  const base = { sinais, fs, periodo: T, dir: d, atividade: ativ, qualidade };
-  const metodo = metodoEscolhido || (ativ === 'corrida' ? 'vertical' : 'zeni');
+  const chao = planoChao(trc, d);
+  const base = { sinais, fs, periodo: T, dir: d, atividade: ativ, qualidade, inclinacao: chao.inclinacao, inclLateral: chao.inclLateral };
+  const metodo = metodoEscolhido || (ativ === 'corrida' ? 'patoz' : 'zeni');
   base.metodoId = metodo;
+  if (metodo === 'patoz') {
+    // Patoz et al. (2021), corrida em esteira:
+    // ponto médio dos dedos = média entre 1º e 5º metatarsos, altura reescalada (− mínimo global).
+    // CI = primeiro máximo entre os picos de aceleração vertical do calcâneo e do meio dos dedos,
+    //      numa janela de 120 ms centrada no instante em que o meio dos dedos desce a 3,5 cm.
+    // RD = meio dos dedos sobe a 3,5 cm depois do CI (se não houver, tenta 4 e 4,5 cm).
+    const meta5 = { R: mk(trc, 'r_5meta_study'), L: mk(trc, 'L_5meta_study') };
+    const half = Math.max(1, Math.round(0.06 * fs));
+    for (const [ci, rd, calc, toe, m5] of [['CI_D', 'RD_D', P.calcR, P.toeR, meta5.R], ['CI_E', 'RD_E', P.calcL, P.toeL, meta5.L]]) {
+      const n = calc.y.length;
+      const ht = chao.altura(toe), h5 = m5 ? chao.altura(m5) : ht, hc = chao.altura(calc);
+      let mt = Float64Array.from(ht, (v, i) => (v + h5[i]) / 2);
+      // "mínimo global" robusto: mediana dos mínimos de cada passada (o OpenCap oscila alguns mm entre passos)
+      const mins = picos(mt.map(v => -v), Math.round(0.6 * T * fs), -Infinity).map(i => mt[i]).sort((x, y) => x - y);
+      const piso = mins.length ? mins[Math.floor(mins.length / 2)] : Math.min(...mt);
+      mt = mt.map(v => v - piso);
+      const acc = (y) => y.map((_, i) => (i === 0 || i === n - 1) ? 0 : (y[i + 1] - 2 * y[i] + y[i - 1]) * fs * fs);
+      const ah = acc(hc), am = acc(mt);
+      const cis = [], rds = [];
+      const distMin = Math.round(0.6 * T * fs);
+      for (let i = 1; i < n; i++) {
+        if (!(mt[i - 1] > 0.035 && mt[i] <= 0.035)) continue;           // desce a 3,5 cm
+        if (cis.length && i - cis[cis.length - 1] < distMin) continue;
+        const a0 = Math.max(1, i - half), a1 = Math.min(n - 2, i + half);
+        let ph = a0, pm = a0;
+        for (let k = a0; k <= a1; k++) { if (ah[k] > ah[ph]) ph = k; if (am[k] > am[pm]) pm = k; }
+        cis.push(Math.min(ph, pm));
+      }
+      for (let j = 0; j < cis.length; j++) {
+        const fim = j + 1 < cis.length ? cis[j + 1] : n - 1;
+        let achou = null;
+        for (const lim of [0.035, 0.04, 0.045]) {
+          for (let k = cis[j] + 1; k < fim; k++) if (mt[k - 1] < lim && mt[k] >= lim) { achou = k; break; }
+          if (achou != null) break;
+        }
+        if (achou != null) rds.push(achou);
+      }
+      ev[ci] = cis; ev[rd] = rds;
+    }
+    return { ...base, eventos: ev, metodo: 'Patoz et al. (2021): aceleração vertical do calcâneo e do meio dos dedos; RD pela altura dos dedos' };
+  }
   if (metodo === 'vertical') {
     // Velocidade vertical (Leitch et al., 2011): CI = vel. vertical do calcâneo cruza de negativa para positiva
     // junto ao ponto mais baixo; RD = dedos começam a subir (vel. vertical > 20 % do pico de subida do ciclo).
     for (const [ci, rd, calc, toe] of [['CI_D', 'RD_D', P.calcR, P.toeR], ['CI_E', 'RD_E', P.calcL, P.toeL]]) {
-      const hy = filtfilt(calc.y, 8, fs), ty = filtfilt(toe.y, 8, fs);
+      const hy = filtfilt(chao.altura(calc), 8, fs), ty = filtfilt(chao.altura(toe), 8, fs);
       const vh = hy.map((_, i) => (hy[Math.min(i + 1, hy.length - 1)] - hy[Math.max(i - 1, 0)]) * fs / 2);
       const vt = ty.map((_, i) => (ty[Math.min(i + 1, ty.length - 1)] - ty[Math.max(i - 1, 0)]) * fs / 2);
       const lo = Math.min(...hy), hi = Math.max(...hy), limiar = lo + 0.35 * (hi - lo);
