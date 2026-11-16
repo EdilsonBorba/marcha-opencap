@@ -97,25 +97,26 @@ export function criarTimeline(el, cb) {
   }
 
   // ---- interação ----
+  const capturar = (e) => { try { svg.setPointerCapture(e.pointerId); } catch {} };
   const ptX = (e) => e.clientX - svg.getBoundingClientRect().left;
   const ptY = (e) => e.clientY - svg.getBoundingClientRect().top;
   svg.addEventListener('pointerdown', (e) => {
     if (!st.A) return;
     const x = ptX(e), y = ptY(e);
     const alca = e.target.closest('[data-alca]'), alca2 = e.target.closest('[data-alca2]'), ev = e.target.closest('[data-k]');
-    if (alca) { st.drag = { tipo: 'alca', lado: alca.dataset.alca, map: io }; svg.setPointerCapture(e.pointerId); return; }
-    if (alca2) { st.drag = { tipo: 'alca', lado: alca2.dataset.alca2, map: iv }; svg.setPointerCapture(e.pointerId); return; }
+    if (alca) { st.drag = { tipo: 'alca', lado: alca.dataset.alca, map: io }; capturar(e); return; }
+    if (alca2) { st.drag = { tipo: 'alca', lado: alca2.dataset.alca2, map: iv }; capturar(e); return; }
     if (ev) {
       st.sel = { k: ev.dataset.k, i: +ev.dataset.i };
       st.drag = { tipo: 'ev', moveu: false };
-      svg.setPointerCapture(e.pointerId);
+      capturar(e);
       cb.onSeek(st.sel.i); desenhar(); return;
     }
     if (y < H.ov) { // faixa geral: clique centraliza; arrastar seleciona o trecho analisado
-      st.drag = { tipo: 'brush', x0: x, i0: io(x) }; svg.setPointerCapture(e.pointerId); return;
+      st.drag = { tipo: 'brush', x0: x, i0: io(x) }; capturar(e); return;
     }
     st.sel = null; cb.onSeek(Math.round(iv(x))); desenhar();
-    st.drag = { tipo: 'cursor' }; svg.setPointerCapture(e.pointerId);
+    st.drag = { tipo: 'cursor' }; capturar(e);
   });
   svg.addEventListener('pointermove', (e) => {
     if (!st.drag) return;
@@ -134,7 +135,7 @@ export function criarTimeline(el, cb) {
       st.brush = [Math.round(Math.min(a, b)), Math.round(Math.max(a, b))]; desenhar();
     }
   });
-  svg.addEventListener('pointerup', () => {
+  const terminar = () => {
     if (!st.drag) return;
     const d = st.drag; st.drag = null;
     if (d.tipo === 'brush') {
@@ -144,7 +145,9 @@ export function criarTimeline(el, cb) {
     }
     if (d.tipo === 'alca') cb.onJanela();
     if (d.tipo === 'ev' && d.moveu) cb.onChange();
-  });
+  };
+  // gesto interrompido (trackpad, troca de janela) também conclui a ação
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) svg.addEventListener(ev, terminar);
   svg.addEventListener('wheel', (e) => {
     if (!st.A) return; e.preventDefault();
     if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) { const w = st.v1 - st.v0, d = (e.deltaX || e.deltaY) / 400 * w; setView(st.v0 + d, st.v1 + d); return; }
