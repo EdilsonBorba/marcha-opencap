@@ -336,7 +336,8 @@ export function analisar(trial, ev, cfg) {
       } else if (P && cfg.ambiente === 'solo') {
         const pos = (m, i) => m.x[i] * d.x + m.z[i] * d.z;
         p.passada = Math.abs(pos(L.calc, b) - pos(L.calc, a));
-        p.passo = ociAnt != null ? Math.abs(pos(L.calc, a) - pos(L.ocalc, a)) : null;
+        // passo = distância entre as "pegadas": calcâneo deste pé no seu TD e calcâneo do outro pé no TD anterior dele
+        p.passo = ociAnt != null ? Math.abs(pos(L.calc, a) - pos(L.ocalc, ociAnt)) : null;
         p.velocidade = p.passada / dur;
       }
       if (P) {
