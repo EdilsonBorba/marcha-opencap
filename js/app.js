@@ -9,11 +9,12 @@ import { desenharEsqueleto } from './skeleton.js';
 import * as api from './api.js';
 import { CREDITOS } from './creditos.js';
 import { carregarNormas, escolherFaixa } from './normas.js';
+import { aplicar as aplicarIdioma, trocarIdioma, idioma, locale } from './i18n.js';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-const fmt = (v, d = 1) => (v == null || !isFinite(v)) ? '–' : (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const fmt = (v, d = 1) => (v == null || !isFinite(v)) ? '–' : (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toLocaleString(locale(), { minimumFractionDigits: d, maximumFractionDigits: d });
 
 const estado = { sessoes: [], analises: new Map(), atual: null, frame: 0, videoURL: null, tocando: false, salvos: new Map() };
 window.__estado = estado;
@@ -471,7 +472,7 @@ function mostrarResultados(A) {
   $('#tab-pontos').innerHTML = '<tr><th>Ponto</th><th class="d">D</th><th class="e">E</th><th>D − E</th></tr>' +
     R.pontos.filter(p => vis.curvas.includes(p.curva)).map(p => `<tr><td>${p.rotulo}</td><td>${fmt(p.D, 0)}</td><td>${fmt(p.E, 0)}</td><td>${p.D != null && p.E != null ? fmt(p.D - p.E, 0) : '–'}</td></tr>`).join('');
   desenharCurvas(A);
-  $('#n-passadas').textContent = `${ok.length} de ${R.passadas.length}`;
+  $("#n-passadas").textContent = `${ok.length} / ${R.passadas.length}`;
   $('#lista-passadas').innerHTML = R.passadas.map(p => `<label class="${p.suspeita ? 'susp' : ''}" title="${p.suspeita ? 'duração fora do padrão ou sem TO' : ''}"><input type="checkbox" data-p="${p.id}" ${p.excluida ? '' : 'checked'}> ${p.lado}${p.n} · ${fmt(p.t0, 1)} s</label>`).join('');
   $$('#lista-passadas input').forEach(c => c.onchange = () => { if (c.checked) A.cfg.excluidos.delete(c.dataset.p); else A.cfg.excluidos.add(c.dataset.p); recalcularJa(); });
 }
@@ -637,3 +638,13 @@ function dadosLaudo() { return { paciente: $('#in-paciente').value.trim(), data:
 // ---------------- util ----------------
 function status(sel, msg, erro = false) { const el = $(sel); el.textContent = msg; el.classList.toggle('erro', erro); }
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+// ---------------- idioma ----------------
+function botaoIdioma() { $('#btn-idioma').textContent = idioma() === 'pt' ? 'English' : 'Português'; }
+$('#btn-idioma').onclick = () => trocarIdioma(idioma() === 'pt' ? 'en' : 'pt', () => {
+  botaoIdioma();
+  const A = atual();
+  if (A) { infoTrial(A); if (A.res) mostrarResultados(A); }
+  montarComparar(); tl.redesenhar(); desenharEsq();
+});
+botaoIdioma(); aplicarIdioma();

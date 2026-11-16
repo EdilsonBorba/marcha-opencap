@@ -18,6 +18,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,B
 .topo{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:10px 24px;display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;justify-content:space-between}
 .topo h1{margin:0;font-size:1.25rem}
 .sub{margin:0;color:var(--mut);font-size:.85rem}
+.idioma{font-size:.82rem;padding:4px 10px;margin-left:auto}
 .passos{display:flex;flex-wrap:wrap;gap:4px}
 .passos a{color:var(--mut);text-decoration:none;font-size:.85rem;padding:4px 8px;border-radius:6px}
 .passos a:hover{background:var(--bg);color:var(--fg)}

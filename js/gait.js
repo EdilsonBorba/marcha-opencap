@@ -225,7 +225,7 @@ export const ANGULOS = [
   ['ankle_angle', 'Tornozelo · dorsi / plantiflexão', 'Dorsiflexão', 'Plantiflexão', {}],
   ['hip_adduction', 'Quadril · adução / abdução', 'Adução', 'Abdução', {}],
   ['hip_rotation', 'Quadril · rotação', 'Interna', 'Externa', {}],
-  ['pelvis_tilt', 'Pelve · inclinação ântero-posterior', 'Anteversão', 'Retroversão', { global: true, inverte: true }],
+  ['pelvis_tilt', 'Pelve · inclinação ântero-posterior (zero do modelo, não o clínico)', 'Anteversão', 'Retroversão', { global: true, inverte: true }],
   ['pelvis_list', 'Pelve · obliquidade (lado = membro do ciclo)', 'Lado desce', 'Lado sobe', { global: true, espelhaE: true }],
   ['pelvis_rotation', 'Pelve · rotação (lado = membro do ciclo)', 'Lado à frente', 'Lado atrás', { global: true, espelhaE: true }],
   ['lumbar_extension', 'Tronco · extensão / flexão (em relação à pelve)', 'Extensão', 'Flexão', { global: true }],

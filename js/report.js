@@ -1,8 +1,9 @@
 import { ANGULOS, VARS, unidade } from './gait.js';
 import { tracosCurva, tracosComparacao, setasEixo, PALETA, linhasComparacao } from './charts.js';
 import { CREDITOS } from './creditos.js';
+import { tr, locale } from './i18n.js';
 
-const f = (v, d = 1) => (v == null || !isFinite(v)) ? '-' : (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const f = (v, d = 1) => (v == null || !isFinite(v)) ? '-' : (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toLocaleString(locale(), { minimumFractionDigits: d, maximumFractionDigits: d });
 const CORES = { D: '#c62828', E: '#1f5fd6' };
 const nomeArq = (A, ext) => `${(A.rotulo || A.trial.nome).replace(/[^\w\-]+/g, '_')}_${new Date().toISOString().slice(0, 10)}.${ext}`;
 const dataBR = (iso) => iso ? iso.split('-').reverse().join('/') : '';
@@ -13,7 +14,7 @@ async function imagem(tracos, titulo, shapes = [], legenda = false, setas = [], 
   document.body.appendChild(div);
   await Plotly.newPlot(div, tracos, {
     width: 520, height: 300, paper_bgcolor: '#fff', plot_bgcolor: '#fff', font: { size: 12, color: '#222' },
-    title: { text: titulo, font: { size: 14 }, x: 0.02 }, margin: { l: setas.length ? 92 : 48, r: 10, t: 34, b: legenda ? 60 : 36 }, showlegend: legenda, annotations: setas,
+    title: { text: tr(titulo), font: { size: 14 }, x: 0.02 }, margin: { l: setas.length ? 92 : 48, r: 10, t: 34, b: legenda ? 60 : 36 }, showlegend: legenda, annotations: setas,
     legend: { orientation: 'h', y: -0.22, font: { size: 10 } }, shapes,
     xaxis: { range: [0, 100], title: { text: '% do ciclo', font: { size: 11 } }, gridcolor: '#e6e6e6' }, yaxis: { title: { text: setas.length ? '' : (un === '°' ? 'graus' : 'cm'), font: { size: 11 } }, ticksuffix: un === '°' ? '°' : ' cm', gridcolor: '#e6e6e6', zerolinecolor: '#999' },
   }, { staticPlot: true });
@@ -30,13 +31,13 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
   const W = 210, M = 15;
   const R = A.res, T = R.tab, sem = A.cfg.ambiente === 'esteira' && !A.cfg.velEsteira;
   let y = M;
-  const txt = (s, x, yy, o = {}) => { pdf.setFont('helvetica', o.b ? 'bold' : 'normal'); pdf.setFontSize(o.s || 10); pdf.setTextColor(o.c || '#1d1d1b'); pdf.text(String(s), x, yy, o.al ? { align: o.al } : undefined); };
+  const txt = (s, x, yy, o = {}) => { pdf.setFont('helvetica', o.b ? 'bold' : 'normal'); pdf.setFontSize(o.s || 10); pdf.setTextColor(o.c || '#1d1d1b'); pdf.text(tr(String(s)), x, yy, o.al ? { align: o.al } : undefined); };
   const linha = (yy) => { pdf.setDrawColor('#d8d5cc'); pdf.line(M, yy, W - M, yy); };
   const rodape = () => {
     pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6.5); pdf.setTextColor('#777');
     const linhas = [
-      ...pdf.splitTextToSize('Valores estimados a partir de vídeo (OpenCap); interpretar com julgamento clínico. TD = touchdown (pé toca o chão); TO = toe-off (dedos deixam o chão). Eventos: ' + R.metodo + '.', W - 2 * M - 16),
-      `Ferramenta desenvolvida por ${CREDITOS.autor}${CREDITOS.doi ? ' · DOI ' + CREDITOS.doi : ''} · ${CREDITOS.repositorio.replace('https://', '')} · ORCID ${CREDITOS.orcid.replace('https://orcid.org/', '')}`,
+      ...pdf.splitTextToSize(tr('Valores estimados a partir de vídeo (OpenCap); interpretar com julgamento clínico. TD = touchdown (pé toca o chão); TO = toe-off (dedos deixam o chão). Eventos:') + ' ' + tr(R.metodo) + '.', W - 2 * M - 16),
+      `${tr('Ferramenta desenvolvida por')} ${CREDITOS.autor}${CREDITOS.doi ? ' · DOI ' + CREDITOS.doi : ''} · ${CREDITOS.repositorio.replace('https://', '')} · ORCID ${CREDITOS.orcid.replace('https://orcid.org/', '')}`,
     ];
     pdf.text(linhas, M, 289 - (linhas.length - 1) * 3);
     txt(`Página ${pdf.getNumberOfPages()}`, W - M, 288, { s: 7, c: '#777', al: 'right' });
@@ -90,7 +91,7 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
   if (D.obs) {
     y += 4; txt('Observações', M, y, { s: 11, b: true }); y += 5;
     pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9.5); pdf.setTextColor('#1d1d1b');
-    const ls = pdf.splitTextToSize(D.obs, W - 2 * M); pdf.text(ls, M, y); y += ls.length * 4.6;
+    const ls = pdf.splitTextToSize(D.obs, W - 2 * M); pdf.text(ls, M, y); y += ls.length * 4.6; // observações: texto do usuário, não traduzido
   }
   rodape();
 
@@ -98,7 +99,11 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
   pdf.addPage(); y = M;
   txt('Curvas ao longo do ciclo', M, y + 4, { s: 13, b: true });
   txt('Linha = média; faixa = ±1 DP; tracejado = TO (dedos deixam o chão).  Vermelho = direito; azul = esquerdo.', M, y + 10, { s: 8, c: '#666' });
-  if (vis.faixa) { txt(`Faixa cinza = normalidade (média ± 1 DP), adultos saudáveis${vis.faixa.grupo ? ', ' + vis.faixa.grupo : ''}, ${f(vis.faixa.velRef, 1)} m/s, n = ${vis.faixa.n}; ${vis.faixa.fonte}. Dados de laboratório com marcadores.`, M, y + 14, { s: 7.5, c: '#666' }); y += 4; }
+  if (vis.faixa) {
+    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7.5); pdf.setTextColor('#666');
+    const nl = pdf.splitTextToSize(tr(`Faixa cinza = normalidade (média ± 1 DP), adultos saudáveis${vis.faixa.grupo ? ', ' + vis.faixa.grupo : ''}, ${f(vis.faixa.velRef, 1)} m/s, n = ${vis.faixa.n}; ${vis.faixa.fonte}. Dados de laboratório com marcadores.`), W - 2 * M);
+    pdf.text(nl, M, y + 14); y += 3.5 * nl.length;
+  }
   y += 15;
   const w = (W - 2 * M - 6) / 2, h = w * 300 / 520;
   for (let i = 0; i < ANG.length; i++) {
@@ -144,6 +149,12 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
   pdf.save(nomeArq(A, 'pdf'));
 }
 
+const NOMES_ABA = {"Resumo": "Summary", "Passadas": "Strides", "Eventos": "Events", "Curvas_media": "Mean_curves", "Curvas_passadas": "Stride_curves", "Comparacao": "Comparison"};
+// traduz cabeçalhos e rótulos (as linhas com dados do usuário ficam como estão)
+function aba(wb, aoa, nome) {
+  const t = aoa.map(l => l.map(v => typeof v === 'string' ? tr(v) : v));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(t), tr === null ? nome : (locale() === 'en-US' ? NOMES_ABA[nome] || nome : nome));
+}
 export function gerarExcel(A, D, comparacao) {
   const wb = XLSX.utils.book_new();
   const R = A.res, T = R.tab, t = A.trial.mot.time;
@@ -159,28 +170,28 @@ export function gerarExcel(A, D, comparacao) {
   }
   info.push([], ['Ponto-chave (graus)', '', 'Direito', '', '', 'Esquerdo']);
   R.pontos.forEach(p => info.push([p.rotulo, '', p.D ?? '', '', '', p.E ?? '']));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(info), 'Resumo');
+  aba(wb, info, 'Resumo');
 
   const ps = [['Passada', 'Lado', 'Usada', 'Suspeita', 'Início (s)', 'Duração (s)', 'Apoio (s)', 'Apoio %', 'Balanço (s)', 'Tempo do passo (s)', 'Duplo apoio %', 'Voo (s)', 'Passada (m)', 'Passo (m)', 'Largura (cm)']];
   R.passadas.forEach(p => ps.push([p.id, p.lado, p.excluida ? 'não' : 'sim', p.suspeita ? 'sim' : '', p.t0, p.duracao, p.apoio ?? '', p.apoioPct ?? '', p.balanco ?? '', p.passoT ?? '', p.duplaPct ?? '', p.voo ?? '', p.passada ?? '', p.passo ?? '', p.largura != null ? p.largura * 100 : '']));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ps), 'Passadas');
+  aba(wb, ps, 'Passadas');
 
   const ev = [['Evento', 'Lado', 'Quadro', 'Tempo (s)']];
   for (const [k, nome, lado] of [['CI_D', 'TD (touchdown: pé toca o chão)', 'D'], ['RD_D', 'TO (toe-off: dedos deixam o chão)', 'D'], ['CI_E', 'TD (touchdown: pé toca o chão)', 'E'], ['RD_E', 'TO (toe-off: dedos deixam o chão)', 'E']])
     A.eventos[k].forEach(i => ev.push([nome, lado, i, t[i]]));
   ev.splice(1, ev.length - 1, ...ev.slice(1).sort((a, b) => a[3] - b[3]));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ev), 'Eventos');
+  aba(wb, ev, 'Eventos');
 
   const head = ['% ciclo']; const colsC = [];
   for (const [c] of ANGULOS) for (const l of ['D', 'E']) if (R.curvas[c]?.[l]) { head.push(`${c}_${l}_media`, `${c}_${l}_dp`); colsC.push([c, l]); }
   const cm = [head];
   for (let k = 0; k <= 100; k++) { const row = [k]; colsC.forEach(([c, l]) => row.push(R.curvas[c][l].m[k], R.curvas[c][l].s[k])); cm.push(row); }
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cm), 'Curvas_media');
+  aba(wb, cm, 'Curvas_media');
 
   const usadas = R.passadas.filter(p => !p.excluida);
   const cp = [['% ciclo', ...ANGULOS.flatMap(([c]) => usadas.map(p => `${c}_${p.id}`))]];
   for (let k = 0; k <= 100; k++) cp.push([k, ...ANGULOS.flatMap(([c]) => usadas.map(p => p.curvas[c]?.[k] ?? ''))]);
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cp), 'Curvas_passadas');
+  aba(wb, cp, 'Curvas_passadas');
 
   const L = (comparacao || []).filter(x => x.res);
   if (L.length >= 2) {
@@ -188,7 +199,7 @@ export function gerarExcel(A, D, comparacao) {
     for (const [k, rot, u] of VARS) if (L.some(B => B.res.tab[k]?.geral?.m != null)) cc.push([`${rot} (${u})`, ...L.map(B => B.res.tab[k]?.geral?.m ?? '')]);
     cc.push(['Simetria do apoio (%)', ...L.map(B => B.res.tab.apoioPct?.si ?? '')]);
     L[0].res.pontos.forEach((p, j) => { cc.push([p.rotulo + ' D', ...L.map(B => B.res.pontos[j].D ?? '')]); cc.push([p.rotulo + ' E', ...L.map(B => B.res.pontos[j].E ?? '')]); });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cc), 'Comparacao');
+    aba(wb, cc, 'Comparacao');
   }
   XLSX.writeFile(wb, nomeArq(A, 'xlsx'));
 }
