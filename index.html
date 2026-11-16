@@ -6,6 +6,7 @@
 <title>Marcha OpenCap</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='6' r='3.5' fill='%231f5fd6'/%3E%3Cpath d='M16 10l-3 9 4 3-2 8M16 10l3 8-5 1M13 19l-5 4' stroke='%231f5fd6' stroke-width='2.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/app.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-basic-dist-min@2.35.2/plotly-basic.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -82,14 +83,16 @@
   <div class="revisao">
     <div class="visor">
       <div class="linha">
-        <label class="inline">Mostrar <select id="sel-visao"><option value="ambos">Vídeo + esqueleto</option><option value="video">Só vídeo</option><option value="esqueleto">Só esqueleto</option></select></label>
+        <label class="inline">Mostrar <select id="sel-visao"><option value="ambos">Vídeo + modelo</option><option value="video">Só vídeo</option><option value="esqueleto">Só modelo</option></select></label>
+        <label class="inline">Modelo <select id="sel-tipo-esq"><option value="3d">Esqueleto do OpenSim (3D)</option><option value="linhas">Linhas (marcadores)</option></select></label>
         <label class="inline">Câmera <select id="sel-cam"></select></label>
-        <label class="inline">Esqueleto <select id="sel-vista"><option value="lateral">De lado</option><option value="frontal">De frente</option><option value="cima">De cima</option></select></label>
+        <label class="inline">Vista <select id="sel-vista"><option value="lateral">Lado direito</option><option value="lateralE">Lado esquerdo</option><option value="frontal">Frente</option><option value="posterior">Trás</option><option value="cima">Cima</option><option value="livre">Livre (girar com o mouse)</option></select></label>
+        <label class="radio"><input type="checkbox" id="chk-cm" checked> centro de massa</label>
         <span id="video-status" class="status"></span>
       </div>
       <div class="telas">
         <div class="tela" id="tela-video"><video id="video" muted playsinline preload="auto"></video></div>
-        <div class="tela" id="tela-esq"><canvas id="esqueleto"></canvas></div>
+        <div class="tela" id="tela-esq"><canvas id="esqueleto"></canvas><div id="visor3d" class="visor3d"></div><span id="esq-status" class="esq-status"></span></div>
       </div>
       <div class="linha controles">
         <button data-step="-10" title="10 quadros para trás">−10</button><button data-step="-1" title="1 quadro para trás (,)">−1</button>

@@ -16,13 +16,15 @@ Tudo roda no navegador: os arquivos do paciente **não são enviados** a nenhum 
 4. **Esteira ou solo.** Na esteira, os comprimentos vêm da velocidade informada.
 5. Calcula velocidade, cadência, passo, passada, largura do passo, apoio, balanço, duplo apoio ou tempo de voo, **simetria D×E**, **variabilidade (CV)** e as curvas de quadril, joelho, tornozelo e pelve (média ± DP, 0–100 % do ciclo).
 6. Avisa quando o rastreamento parece ruim (índice de regularidade).
-7. **Compara** trials ou sessões (antes × depois, condições).
-8. Gera **laudo em PDF** e **Excel** com todos os dados.
+7. Mostra o **esqueleto do modelo do OpenSim em 3D** ao lado do vídeo (cinemática direta do `.osim` com os ângulos do `.mot`; validado: marcadores do modelo a ~2 cm dos do OpenCap) e calcula o **centro de massa** (massas dos segmentos do modelo escalado): oscilação vertical e calcanhar à frente do centro de massa no contato.
+8. **Compara** trials ou sessões (antes × depois, condições).
+9. Gera **laudo em PDF** e **Excel** com todos os dados.
 
 ## Arquivos do OpenCap usados
 - `OpenSimData/Kinematics/*.mot`: ângulos
 - `MarkerData/*.trc`: marcadores (eventos, comprimentos, largura)
 - `Videos/Cam*/InputMedia/<trial>/<trial>_sync.mp4`: vídeo para conferir os eventos
+- `OpenSimData/Model/*.osim` e `Geometry/*.vtp`: esqueleto 3D e centro de massa (sem as malhas locais, elas vêm do repositório público do OpenCap)
 - `sessionMetadata.yaml`: altura e massa (o campo com o nome do participante não é lido)
 
 ## Limitações

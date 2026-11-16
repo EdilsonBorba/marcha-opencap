@@ -297,6 +297,13 @@ export function analisar(trial, ev, cfg) {
         const lat = (m, i) => -m.x[i] * d.z + m.z[i] * d.x;
         p.largura = ociAnt != null ? Math.abs(lat(L.calc, a) - lat(L.ocalc, ociAnt)) : null; // cada calcâneo no seu próprio contato
       }
+      // centro de massa (do modelo do OpenSim): oscilação vertical na passada e calcanhar à frente do CM no contato
+      if (trial.com) {
+        let mx = -Infinity, mn = Infinity;
+        for (let i = a; i <= b; i++) { mx = Math.max(mx, trial.com.y[i]); mn = Math.min(mn, trial.com.y[i]); }
+        p.oscCM = (mx - mn) * 100;
+        if (P) p.overstride = ((L.calc.x[a] - trial.com.x[a]) * d.x + (L.calc.z[a] - trial.com.z[a]) * d.z) * 100;
+      }
       // curvas normalizadas
       p.curvas = {};
       for (const [c, , , , o] of ANGULOS) {
@@ -326,6 +333,8 @@ const VARS = [
   ['passada', 'Comprimento da passada', 'm', 2],
   ['passo', 'Comprimento do passo', 'm', 2],
   ['largura', 'Largura do passo', 'cm', 1],
+  ['oscCM', 'Oscilação vertical do centro de massa', 'cm', 1],
+  ['overstride', 'Calcanhar à frente do centro de massa no contato', 'cm', 1],
   ['duracao', 'Tempo da passada', 's', 2],
   ['passoT', 'Tempo do passo', 's', 3],
   ['apoioPct', 'Apoio', '% do ciclo', 1],
@@ -347,7 +356,7 @@ function resumir(trial, passadas, cfg, ctx) {
     if (cfg.atividade !== 'corrida' && k === 'voo') continue;
     const mult = k === 'largura' ? 100 : 1;
     const D = est(lado('D').map(p => p[k] != null ? p[k] * mult : null)), Es = est(lado('E').map(p => p[k] != null ? p[k] * mult : null));
-    const si = k !== 'largura' && D.m != null && Es.m != null && (D.m + Es.m) !== 0 ? 100 * (D.m - Es.m) / (0.5 * (D.m + Es.m)) : null;
+    const si = !['largura', 'overstride'].includes(k) && D.m != null && Es.m != null && (D.m + Es.m) !== 0 ? 100 * (D.m - Es.m) / (0.5 * (D.m + Es.m)) : null;
     tab[k] = { D, E: Es, si, geral: est(ok.map(p => p[k] != null ? p[k] * mult : null)) };
   }
   // cadência: passos por minuto pelo tempo médio de passada (2 passos por passada)

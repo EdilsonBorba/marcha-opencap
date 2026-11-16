@@ -41,7 +41,7 @@ export async function montarSessaoAPI(s, trialsEscolhidos, aoProgresso = () => {
   const diag = [];
   // metadados (altura/massa) vêm do trial "neutral"
   const neutro = (s.trials || []).filter(t => /^neutral$/i.test(t.name)).pop() || s.meta?.neutral_trial;
-  if (neutro?.id) { try { const tn = await trial(neutro.id); add('sessionMetadata.yaml', resultado(tn, 'session_metadata')); } catch {} }
+  if (neutro?.id) { try { const tn = await trial(neutro.id); add('sessionMetadata.yaml', resultado(tn, 'session_metadata')); add('OpenSimData/Model/modelo_escalado.osim', resultado(tn, 'opensim_model')); } catch {} }
   const cams = new Set();
   let k = 0;
   for (const t0 of trialsEscolhidos) {

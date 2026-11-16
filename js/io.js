@@ -150,3 +150,8 @@ export function parseTrc(txt) {
   nomes.forEach((n, m) => { markers[n] = { x: Float64Array.from(cols[m][0]), y: Float64Array.from(cols[m][1]), z: Float64Array.from(cols[m][2]) }; });
   return { rate, time: Float64Array.from(time), markers };
 }
+
+// modelo escalado do OpenSim (lido uma vez por sessão)
+export function caminhoModelo(sessao) {
+  return [...sessao.files.keys()].find(p => /^OpenSimData\/Model\/[^/]+\.osim$/i.test(p)) || null;
+}

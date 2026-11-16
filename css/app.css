@@ -122,3 +122,10 @@ kbd{font:11px ui-monospace,Menlo,monospace;border:1px solid var(--line);border-b
 .comp-lista{display:block}
 .comp-sessao{margin:4px 0 8px}
 .comp-itens{display:flex;flex-wrap:wrap;gap:4px 16px}
+
+#tela-esq{position:relative}
+.visor3d{position:absolute;inset:0}
+.visor3d canvas{display:block}
+#tela-esq.modo3d #esqueleto{display:none}
+#tela-esq:not(.modo3d) .visor3d{display:none}
+.esq-status{position:absolute;left:10px;bottom:8px;font-size:.78rem;color:var(--mut)}

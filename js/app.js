@@ -1,4 +1,6 @@
-import { abrirZip, abrirArquivosDePasta, lerItensArrastados, carregarTrial, urlVideo } from './io.js';
+import { abrirZip, abrirArquivosDePasta, lerItensArrastados, carregarTrial, urlVideo, caminhoModelo } from './io.js';
+import { lerModelo, cinematica, valoresDoMot, centroMassa } from './model.js';
+import { criarVisor3D } from './viewer3d.js';
 import { detectarEventos, analisar, trechoEstavel, ANGULOS, VARS, PREDEF } from './gait.js';
 import { gerarPDF, gerarExcel } from './report.js';
 import { tracosCurva, tracosComparacao, setasEixo, PALETA } from './charts.js';
@@ -140,6 +142,20 @@ async function selecionar(k) {
   recalcular();
 }
 
+// modelo do OpenSim da sessão (um por sessão) e trajetória do centro de massa
+function obterModelo(sessao) {
+  if (!sessao._modelo) sessao._modelo = (async () => {
+    const p = caminhoModelo(sessao); if (!p) return null;
+    try { return lerModelo(await sessao.files.get(p).text()); } catch (e) { console.warn('modelo', e); return null; }
+  })();
+  return sessao._modelo;
+}
+function trajetoriaCM(mod, mot) {
+  const n = mot.time.length, x = new Float64Array(n), y = new Float64Array(n), z = new Float64Array(n);
+  for (let i = 0; i < n; i++) { const c = centroMassa(mod, cinematica(mod, valoresDoMot(mod, mot, i))) || [NaN, NaN, NaN]; x[i] = c[0]; y[i] = c[1]; z[i] = c[2]; }
+  return { x, y, z };
+}
+
 async function prepararAnalise(k) {
   let A = estado.analises.get(k);
   if (A) return A;
@@ -147,6 +163,8 @@ async function prepararAnalise(k) {
   const sessao = estado.sessoes.find(s => s.id === sid);
   const trial = await carregarTrial(sessao, nome);
   if (!trial.trc) throw new Error('Este trial não tem MarkerData/' + nome + '.trc.');
+  const mod = await obterModelo(sessao);
+  if (mod) trial.com = trajetoriaCM(mod, trial.mot);
   const ant = [...estado.analises.values()].pop();  // herda local e inclinação do trial anterior
   A = { k, sessao, trial, rotulo: nome,
     cfg: { ambiente: ant?.cfg.ambiente || 'esteira', velEsteira: null, incl: ant?.cfg.incl ?? null, inclUn: ant?.cfg.inclUn || 'pct', atividade: '', metodo: '', janela: null, excluidos: null } };
@@ -209,6 +227,9 @@ $('#sel-metodo').onchange = (e) => { const A = atual(); if (!A) return; A.cfg.me
 
 // ---------------- 3. revisão ----------------
 const video = $('#video'), canvas = $('#esqueleto');
+const visor = criarVisor3D($('#visor3d'));
+$('#visor3d').addEventListener('vista', (e) => { $('#sel-vista').value = e.detail; });
+let modo3d = false;
 const tl = criarTimeline($('#timeline'), {
   onSeek: (f) => { pausar(); irPara(f); },
   onChange: () => { const A = atual(); A.cfg.excluidos = null; desenharSinal(); recalcular(); },
@@ -224,10 +245,25 @@ async function mostrarRevisao(A) {
   aplicarVisao();
   await trocarVideo();
   tl.set(A); desenharSinal(); irPara(estado.frame);
+  prepararVisor3D(A);
 }
+async function prepararVisor3D(A) {
+  const mod = await obterModelo(A.sessao);
+  modo3d = !!mod && $('#sel-tipo-esq').value === '3d';
+  $('#tela-esq').classList.toggle('modo3d', modo3d);
+  $('#sel-tipo-esq').disabled = !mod;
+  if (!mod) { $('#sel-tipo-esq').value = 'linhas'; $('#esq-status').textContent = 'Sem modelo do OpenSim nesta sessão: mostrando linhas.'; desenharEsq(); return; }
+  if (!modo3d) { desenharEsq(); return; }
+  $('#esq-status').textContent = 'Carregando o esqueleto…';
+  try { await visor.carregar(mod, A.sessao, A.trial.mot, A.det.dir); $('#esq-status').textContent = 'Arraste para girar · roda = zoom'; visor.setVista($('#sel-vista').value); }
+  catch (e) { console.error(e); $('#esq-status').textContent = 'Não consegui montar o esqueleto 3D.'; }
+  desenharEsq();
+}
+$('#sel-tipo-esq').onchange = () => { const A = atual(); if (A) prepararVisor3D(A); };
+$('#chk-cm').onchange = (e) => { visor.setCM(e.target.checked); desenharEsq(); };
 $('#sel-cam').onchange = trocarVideo;
 $('#sel-visao').onchange = () => { aplicarVisao(); desenharEsq(); };
-$('#sel-vista').onchange = () => desenharEsq();
+$('#sel-vista').onchange = () => { if (modo3d) visor.setVista($('#sel-vista').value); desenharEsq(); };
 function aplicarVisao() {
   const v = $('#sel-visao').value;
   $('#tela-video').hidden = v === 'esqueleto';
@@ -272,7 +308,9 @@ function emApoio(A, i) {
 }
 function desenharEsq() {
   const A = atual(); if (!A || $('#tela-esq').hidden) return;
-  desenharEsqueleto(canvas, A.trial.trc, estado.frame, $('#sel-vista').value, A.det.dir, emApoio(A, estado.frame), { d: css('--d'), e: css('--e'), fg: css('--fg'), linha: css('--line') });
+  if (modo3d) { visor.quadro(estado.frame, emApoio(A, estado.frame)); return; }
+  const v = { lateralE: 'lateral', posterior: 'frontal', livre: 'lateral' }[$('#sel-vista').value] || $('#sel-vista').value;
+  desenharEsqueleto(canvas, A.trial.trc, estado.frame, v, A.det.dir, emApoio(A, estado.frame), { d: css('--d'), e: css('--e'), fg: css('--fg'), linha: css('--line') });
 }
 new ResizeObserver(() => desenharEsq()).observe(canvas);
 
