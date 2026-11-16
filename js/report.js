@@ -61,6 +61,18 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
   ];
   kp.forEach(([k, v], i) => { const x = M + i * 45; txt(k, x, y, { s: 7.5, c: '#777' }); txt(v, x, y + 6, { s: 13, b: true }); });
   y += 14;
+  if (R.atividade === 'corrida' && R.padrao?.D) { txt(`Padrão de contato no TD: D ${R.padrao.D.pred} (pé ${f(T.anguloPe?.D.m, 0)}°), E ${R.padrao.E?.pred ?? '-'} (pé ${f(T.anguloPe?.E.m, 0)}°) · Altman & Davis (2012)`, M, y, { s: 8.5 }); y += 6; }
+  // achados
+  const ach = A.achados || [];
+  if (ach.length) {
+    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8.5);
+    const linhasA = ach.flatMap(a => pdf.splitTextToSize('• ' + tr(a.t).replace(/[–−]/g, '-'), W - 2 * M - 8));
+    const h = 9 + linhasA.length * 4.2;
+    pdf.setDrawColor('#d8a200'); pdf.setFillColor('#fff8e6'); pdf.roundedRect(M, y - 4, W - 2 * M, h, 2, 2, 'FD');
+    txt('Achados (sinalização automática; não substitui a avaliação clínica)', M + 3, y + 1, { s: 9, b: true });
+    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8.5); pdf.setTextColor('#1d1d1b'); pdf.text(linhasA, M + 4, y + 6.5);
+    y += h + 3;
+  }
 
   // tabela espaço-temporal
   txt('Variáveis espaço-temporais', M, y, { s: 11, b: true }); y += 5;
@@ -71,6 +83,7 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
   for (const [k, rot, u, d] of VARS) {
     const v = T[k]; if (!v || k === 'velocidade' || k === 'cadencia' || !vis.vars.includes(k)) continue;
     if (sem && ['passada', 'passo'].includes(k)) continue;
+    if (y > 272) { rodape(); pdf.addPage(); y = M + 6; }
     const mdp = (x) => x.m == null ? '-' : f(x.m, d) + (x.dp != null ? ' ± ' + f(x.dp, d) : '');
     const vals = [`${rot} (${u})`, mdp(v.D), mdp(v.E), v.si == null ? '-' : (v.si > 0 ? '+' : '') + f(v.si, 1) + '%', f(v.geral.cv, 1) + '%'];
     vals.forEach((s, i) => txt(s, cols[i] + (i ? 26 : 0), y, { s: 8.5, al: i ? 'right' : undefined, b: i === 3 && Math.abs(v.si ?? 0) >= 10 }));
@@ -84,6 +97,7 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
   ['Ponto', 'Direito', 'Esquerdo', 'D - E'].forEach((h, i) => txt(h, [M, M + 128, M + 150, M + 172][i], y, { s: 8, b: true, c: i === 1 ? CORES.D : i === 2 ? CORES.E : '#555', al: i ? 'right' : undefined }));
   y += 2; linha(y); y += 4.5;
   for (const p of pontos) {
+    if (y > 272) { rodape(); pdf.addPage(); y = M + 6; }
     [p.rotulo, f(p.D, 0), f(p.E, 0), p.D != null && p.E != null ? f(p.D - p.E, 0) : '-'].forEach((s, i) => txt(s, [M, M + 128, M + 150, M + 172][i], y, { s: 8.5, al: i ? 'right' : undefined }));
     y += 5;
   }

@@ -156,3 +156,12 @@ export function parseTrc(txt) {
 export function caminhoModelo(sessao) {
   return [...sessao.files.keys()].find(p => /^OpenSimData\/Model\/[^/]+\.osim$/i.test(p)) || null;
 }
+
+// trial em pé ("neutral") da sessão: referência estática para o ângulo do pé
+export async function carregarNeutro(sessao) {
+  if (!('_neutro' in sessao)) {
+    const f = sessao.files.get('MarkerData/neutral.trc');
+    try { sessao._neutro = f ? parseTrc(await f.text()) : null; } catch { sessao._neutro = null; }
+  }
+  return sessao._neutro;
+}

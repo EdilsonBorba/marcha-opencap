@@ -77,6 +77,7 @@
     </label>
     <label>Atividade<select id="sel-ativ"><option value="">Automático</option><option value="marcha">Marcha</option><option value="corrida">Corrida</option></select></label>
     <label>Filtro passa-baixa (Hz)<input id="in-filtro" type="number" min="0" max="30" step="0.5" placeholder="auto: 6 marcha · 10 corrida" title="Butterworth de 4ª ordem sem defasagem. Vazio = automático; 0 = sem filtro."></label>
+    <label>Referência do ângulo do pé<select id="sel-ref-pe"><option value="meio">Pé apoiado no meio do apoio (padrão)</option><option value="neutro">Trial em pé do OpenCap (neutral)</option></select></label>
     <label>Detecção dos eventos<select id="sel-metodo"><option value="">Automático (marcha: Zeni · corrida: Patoz)</option><option value="zeni">Posição do pé em relação ao sacro (Zeni et al., 2008)</option><option value="patoz">Aceleração e altura do calcâneo e dedos (Patoz et al., 2021)</option><option value="vertical">Velocidade vertical do pé (Leitch et al., 2011)</option></select></label>
   </div>
   <fieldset class="participante"><legend>Participante <span class="dica">(vem do OpenCap; corrija se algo foi registrado errado)</span></legend>
@@ -152,6 +153,7 @@
     </div>
   </details>
   <div id="cards" class="cards"></div>
+  <div id="achados" class="achados"></div>
   <div class="duas">
     <div>
       <h3>Espaço-temporais</h3>

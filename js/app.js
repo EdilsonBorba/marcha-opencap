@@ -1,7 +1,8 @@
-import { abrirZip, abrirArquivosDePasta, lerItensArrastados, carregarTrial, urlVideo, caminhoModelo } from './io.js';
+import { abrirZip, abrirArquivosDePasta, lerItensArrastados, carregarTrial, urlVideo, caminhoModelo, carregarNeutro } from './io.js';
+import { calcularAchados } from './achados.js';
 import { lerModelo, cinematica, valoresDoMot, centroMassa } from './model.js';
 import { criarVisor3D } from './viewer3d.js';
-import { detectarEventos, analisar, trechoEstavel, filtrarTrial, ANGULOS, VARS, PREDEF, unidade } from './gait.js';
+import { detectarEventos, analisar, trechoEstavel, filtrarTrial, referenciaPe, ANGULOS, VARS, PREDEF, unidade } from './gait.js';
 import { gerarPDF, gerarExcel } from './report.js';
 import { tracosCurva, tracosComparacao, setasEixo, PALETA, linhasComparacao } from './charts.js';
 import { criarTimeline } from './timeline.js';
@@ -183,6 +184,7 @@ async function prepararAnalise(k) {
   estado.analises.set(k, A);
   const salvo = estado.salvos.get(`${sessao.nome}|${nome}`);
   if (salvo?.cfg && 'filtro' in salvo.cfg) A.cfg.filtro = salvo.cfg.filtro;
+  A.neutro = await carregarNeutro(sessao);
   await aplicarFiltro(A);
   detectar(A);
   // filtro automático: se a detecção indicar corrida, refiltra a 10 Hz e detecta de novo
@@ -207,7 +209,9 @@ function aplicarSalvo(A, s) {
 }
 function calcularRes(A) {
   const ativ = A.cfg.atividade || A.det.atividade;
-  A.res = analisar(A.trial, A.eventos, { ...A.cfg, atividade: ativ });
+  const refPe = A.cfg.refPeModo === 'neutro' && A.neutro ? referenciaPe(A.neutro, A.det.dir) : null;
+  const inclGraus = A.cfg.ambiente === 'esteira' ? (A.det.inclinacao || 0) : 0;
+  A.res = analisar(A.trial, A.eventos, { ...A.cfg, atividade: ativ, refPe, inclGraus });
   A.res.atividade = ativ; A.res.metodo = A.det.metodo;
   if (!A.cfg.excluidos) A.cfg.excluidos = new Set(A.res.passadas.filter(p => p.excluida).map(p => p.id));
 }
@@ -230,6 +234,8 @@ function preencherForm(A) {
   $$('.so-esteira').forEach(e => e.style.display = c.ambiente === 'esteira' ? '' : 'none');
   $('#sel-ativ').value = c.atividade;
   $('#sel-metodo').value = c.metodo;
+  $('#sel-ref-pe').value = c.refPeModo || 'meio';
+  $('#sel-ref-pe').querySelector('[value=neutro]').disabled = !A.neutro;
   $('#in-filtro').value = c.filtro == null ? '' : c.filtro;
   const m = A.sessao.meta || {};
   $('#pt-sexo').value = m.sexo || ''; $('#pt-idade').value = m.idade ?? ''; $('#pt-altura').value = m.altura ?? ''; $('#pt-massa').value = m.massa ?? '';
@@ -271,6 +277,7 @@ $('#in-filtro').onchange = async (e) => {
   await aplicarFiltro(A);           // mantém as marcações; recalcula tudo com os dados refiltrados
   infoTrial(A); desenharSinal(); recalcular(); prepararVisor3D(A);
 };
+$('#sel-ref-pe').onchange = (e) => { const A = atual(); if (!A) return; A.cfg.refPeModo = e.target.value; recalcular(); };
 $('#sel-metodo').onchange = (e) => { const A = atual(); if (!A) return; A.cfg.metodo = e.target.value; redetectar(); };
 
 // ---------------- 3. revisão ----------------
@@ -481,6 +488,7 @@ function mostrarResultados(A) {
       ? kpi('Contato D / E', `${fmt(T.apoio.D.m * 1000, 0)} / ${fmt(T.apoio.E.m * 1000, 0)}`, 'ms', si(T.apoio.si))
       : kpi('Apoio D / E', `${fmt(T.apoioPct.D.m, 0)} / ${fmt(T.apoioPct.E.m, 0)}`, '% do ciclo', si(T.apoioPct.si)),
     R.atividade === 'corrida' ? kpi('Tempo de voo', fmt(T.voo?.geral.m * 1000, 0), 'ms') : kpi('Duplo apoio', fmt(T.duplaPct?.geral.m, 0), '% do ciclo'),
+    R.atividade === 'corrida' && R.padrao?.D ? kpi('Contato D / E', `${R.padrao.D.pred} / ${R.padrao.E?.pred ?? '–'}`, 'padrão no TD', `pé ${fmt(T.anguloPe?.D.m, 0)}° / ${fmt(T.anguloPe?.E.m, 0)}°`) : '',
     kpi('Passadas usadas', `${nD} D · ${nE} E`, R.atividade, `CV tempo ${fmt(T.duracao.geral.cv, 1)}%`),
   ].join('');
   let h = '<tr><th>Variável</th><th class="d">Direito</th><th class="e">Esquerdo</th><th>Simetria</th><th>CV</th></tr>';
@@ -493,6 +501,9 @@ function mostrarResultados(A) {
     h += `<tr><td>${rot} <span class="dica">${u}</span></td><td>${mdp(v.D)}</td><td>${mdp(v.E)}</td><td>${a}</td><td>${fmt(v.geral.cv, 1)}%</td></tr>`;
   }
   $('#tab-et').innerHTML = h;
+  const ach = calcularAchados(A, faixaPara(A), fmt);   // curvas só são avaliadas com a faixa de normalidade ligada
+  A.achados = ach;
+  $('#achados').innerHTML = ach.length ? `<h3>Achados <span class="dica">sinalização automática; não substitui a avaliação clínica</span></h3><ul>${ach.map(a => `<li class="ach-${a.n}">${a.t}</li>`).join('')}</ul>` : '<p class="dica">Nenhum achado sinalizado (assimetrias &lt; 10%, variabilidade ≤ 5%, rastreamento regular).</p>';
   $('#bloco-pontos').hidden = !vis.pontos;
   $('#tab-pontos').innerHTML = '<tr><th>Ponto</th><th class="d">D</th><th class="e">E</th><th>D − E</th></tr>' +
     R.pontos.filter(p => vis.curvas.includes(p.curva)).map(p => `<tr><td>${p.rotulo}</td><td>${fmt(p.D, 0)}</td><td>${fmt(p.E, 0)}</td><td>${p.D != null && p.E != null ? fmt(p.D - p.E, 0) : '–'}</td></tr>`).join('');

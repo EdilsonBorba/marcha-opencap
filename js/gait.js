@@ -234,6 +234,29 @@ export function detectarEventos(trc, mot, ambiente, atividade, metodoEscolhido, 
     metodo: ativ === 'corrida' ? 'TD: Zeni et al. (2008); TO: pico de extensão do joelho (Fellin et al., 2010)' : 'Zeni et al. (2008)' };
 }
 
+// ---------- ângulo do pé ----------
+// Inclinação do pé no plano sagital (calcâneo → dedos) em relação à horizontal, em graus; + = dedos mais altos.
+export function anguloPeGlobal(trc, lado, i, d) {
+  const c = mk(trc, lado === 'D' ? 'r_calc_study' : 'L_calc_study', lado === 'D' ? 'RHeel' : 'LHeel');
+  const t = mk(trc, lado === 'D' ? 'r_toe_study' : 'L_toe_study', lado === 'D' ? 'RBigToe' : 'LBigToe');
+  if (!c || !t) return null;
+  // comprimento horizontal no plano do próprio pé (não projetado na direção da marcha: o pé aberto não altera o ângulo)
+  const hx = t.x[i] - c.x[i], hz = t.z[i] - c.z[i], ap = Math.hypot(hx, hz) * Math.sign(hx * d.x + hz * d.z || 1), dy = t.y[i] - c.y[i];
+  return Math.atan2(dy, ap) * 180 / Math.PI;
+}
+// Referência estática (Altman & Davis, 2012): média do ângulo do pé no trial em pé.
+export function referenciaPe(neutro, d) {
+  if (!neutro) return null;
+  const r = {};
+  for (const l of ['D', 'E']) {
+    const v = []; for (let i = 0; i < neutro.time.length; i++) { const a = anguloPeGlobal(neutro, l, i, d); if (a != null) v.push(a); }
+    r[l] = v.length ? media(v) : null;
+  }
+  return r.D != null && r.E != null ? r : null;
+}
+// Altman & Davis (2012): retropé > 8°; mediopé −1,6° a 8°; antepé < −1,6°
+export const padraoContato = (a) => a == null ? null : a > 8 ? 'retropé' : a < -1.6 ? 'antepé' : 'mediopé';
+
 // ---------- variáveis ----------
 // [coluna, título, sentido positivo, sentido negativo, opções]
 // global: coordenada única (pelve/tronco); espelhaE: inverte o sinal nas passadas esquerdas para que
@@ -327,6 +350,13 @@ export function analisar(trial, ev, cfg) {
         p.oscCM = (mx - mn) * 100;
         if (P) p.overstride = ((L.calc.x[a] - trial.com.x[a]) * d.x + (L.calc.z[a] - trial.com.z[a]) * d.z) * 100;
       }
+      // ângulo do pé no TD, em relação ao piso (desconta a inclinação da esteira) e à referência
+      if (P) {
+        const g = anguloPeGlobal(trial.trc, lado, a, d);
+        let ref = cfg.refPe?.[lado];
+        if (ref == null && rd != null) ref = anguloPeGlobal(trial.trc, lado, Math.round((a + rd) / 2), d) - (cfg.inclGraus || 0); // sem trial em pé: pé no meio do apoio
+        if (g != null && ref != null) { p.anguloPe = g - (cfg.inclGraus || 0) - ref; p.contato = padraoContato(p.anguloPe); }
+      }
       // curvas normalizadas
       p.curvas = {};
       for (const [c, , , , o] of ANGULOS) {
@@ -369,6 +399,7 @@ const VARS = [
   ['passada', 'Comprimento da passada', 'm', 2],
   ['passo', 'Comprimento do passo', 'm', 2],
   ['largura', 'Largura do passo', 'cm', 1],
+  ['anguloPe', 'Ângulo do pé no TD', '°', 1],
   ['oscCM', 'Oscilação vertical do centro de massa', 'cm', 1],
   ['overstride', 'Calcanhar à frente do centro de massa no TD', 'cm', 1],
   ['duracao', 'Tempo da passada', 's', 2],
@@ -392,8 +423,9 @@ function resumir(trial, passadas, cfg, ctx) {
     if (cfg.atividade !== 'corrida' && k === 'voo') continue;
     const mult = k === 'largura' ? 100 : 1;
     const D = est(lado('D').map(p => p[k] != null ? p[k] * mult : null)), Es = est(lado('E').map(p => p[k] != null ? p[k] * mult : null));
-    const si = !['largura', 'overstride'].includes(k) && D.m != null && Es.m != null && (D.m + Es.m) !== 0 ? 100 * (D.m - Es.m) / (0.5 * (D.m + Es.m)) : null;
+    const si = !['largura', 'overstride', 'anguloPe'].includes(k) && D.m != null && Es.m != null && (D.m + Es.m) !== 0 ? 100 * (D.m - Es.m) / (0.5 * (D.m + Es.m)) : null;
     tab[k] = { D, E: Es, si, geral: est(ok.map(p => p[k] != null ? p[k] * mult : null)) };
+    if (['anguloPe', 'overstride'].includes(k)) tab[k].geral.cv = null;   // CV não faz sentido em medidas que cruzam o zero
   }
   // cadência: passos por minuto pelo tempo médio de passada (2 passos por passada)
   const durs = ok.map(p => p.duracao);
@@ -416,7 +448,14 @@ function resumir(trial, passadas, cfg, ctx) {
     }
   }
   const rdMedio = { D: est(lado('D').map(p => p.apoioPct)).m, E: est(lado('E').map(p => p.apoioPct)).m };
-  return { passadas, tab, curvas, rdMedio, pontos: pontosChave(curvas, rdMedio), ctx };
+  const padrao = {};
+  for (const l of ['D', 'E']) {
+    const cs = lado(l).map(p => p.contato).filter(Boolean); if (!cs.length) continue;
+    const cont = { 'retropé': 0, 'mediopé': 0, 'antepé': 0 }; cs.forEach(c => cont[c]++);
+    const pred = Object.entries(cont).sort((x, y) => y[1] - x[1])[0][0];
+    padrao[l] = { pred, pct: 100 * cont[pred] / cs.length, cont, n: cs.length };
+  }
+  return { passadas, tab, curvas, rdMedio, padrao, refEstatica: !!cfg.refPe, pontos: pontosChave(curvas, rdMedio), ctx };
 }
 
 function pontosChave(curvas, rd) {
