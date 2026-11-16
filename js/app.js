@@ -2,7 +2,7 @@ import { abrirZip, abrirArquivosDePasta, lerItensArrastados, carregarTrial, urlV
 import { calcularAchados } from './achados.js';
 import { lerModelo, cinematica, valoresDoMot, centroMassa } from './model.js';
 import { criarVisor3D } from './viewer3d.js';
-import { detectarEventos, analisar, trechoEstavel, filtrarTrial, referenciaPe, ANGULOS, VARS, PREDEF, unidade } from './gait.js';
+import { detectarEventos, analisar, trechoEstavel, filtrarTrial, referenciaPe, pontosNormais, ANGULOS, VARS, PREDEF, unidade } from './gait.js';
 import { gerarPDF, gerarExcel } from './report.js';
 import { tracosCurva, tracosComparacao, setasEixo, PALETA, linhasComparacao } from './charts.js';
 import { criarTimeline } from './timeline.js';
@@ -498,15 +498,17 @@ function mostrarResultados(A) {
     if (k === 'velocidade' || k === 'cadencia') { h += `<tr><td>${rot} <span class="dica">${u}</span></td><td colspan="2" style="text-align:center">${fmt(v.geral.m, d)}</td><td></td><td></td></tr>`; continue; }
     const mdp = (x) => x.m == null ? '–' : `${fmt(x.m, d)}${x.dp != null ? ' <span class="dica">± ' + fmt(x.dp, d) + '</span>' : ''}`;
     const a = v.si == null ? '–' : `<span class="${Math.abs(v.si) >= 10 ? 'assim' : ''}">${v.si > 0 ? '+' : ''}${fmt(v.si, 1)}%</span>`;
-    h += `<tr><td>${rot} <span class="dica">${u}</span></td><td>${mdp(v.D)}</td><td>${mdp(v.E)}</td><td>${a}</td><td>${fmt(v.geral.cv, 1)}%</td></tr>`;
+    h += `<tr><td>${rot} <span class="dica">${u}</span></td><td>${mdp(v.D)}</td><td>${mdp(v.E)}</td><td>${a}</td><td>${v.geral.cv == null ? '–' : fmt(v.geral.cv, 1) + '%'}</td></tr>`;
   }
   $('#tab-et').innerHTML = h;
   const ach = calcularAchados(A, faixaPara(A), fmt);   // curvas só são avaliadas com a faixa de normalidade ligada
   A.achados = ach;
   $('#achados').innerHTML = ach.length ? `<h3>Achados <span class="dica">sinalização automática; não substitui a avaliação clínica</span></h3><ul>${ach.map(a => `<li class="ach-${a.n}">${a.t}</li>`).join('')}</ul>` : '<p class="dica">Nenhum achado sinalizado (assimetrias &lt; 10%, variabilidade ≤ 5%, rastreamento regular).</p>';
   $('#bloco-pontos').hidden = !vis.pontos;
-  $('#tab-pontos').innerHTML = '<tr><th>Ponto</th><th class="d">D</th><th class="e">E</th><th>D − E</th></tr>' +
-    R.pontos.filter(p => vis.curvas.includes(p.curva)).map(p => `<tr><td>${p.rotulo}</td><td>${fmt(p.D, 0)}</td><td>${fmt(p.E, 0)}</td><td>${p.D != null && p.E != null ? fmt(p.D - p.E, 0) : '–'}</td></tr>`).join('');
+  const fxP = faixaPara(A), nrm = fxP ? pontosNormais(fxP, R.rdMedio.D) : {};
+  const temN = Object.keys(nrm).length > 0;
+  $('#tab-pontos').innerHTML = `<tr><th>Ponto</th><th class="d">D</th><th class="e">E</th><th>D − E</th>${temN ? '<th>Normal</th>' : ''}</tr>` +
+    R.pontos.filter(p => vis.curvas.includes(p.curva)).map(p => { const n = nrm[p.rotulo]; return `<tr><td>${p.rotulo}</td><td>${fmt(p.D, 0)}</td><td>${fmt(p.E, 0)}</td><td>${p.D != null && p.E != null ? fmt(p.D - p.E, 0) : '–'}</td>${temN ? `<td class="dica">${n ? fmt(n.m, 0) + (n.s != null ? ' ± ' + fmt(n.s, 0) : '') : ''}</td>` : ''}</tr>`; }).join('');
   desenharCurvas(A);
   $("#n-passadas").textContent = `${ok.length} / ${R.passadas.length}`;
   $('#lista-passadas').innerHTML = R.passadas.map(p => `<label class="${p.suspeita ? 'susp' : ''}" title="${p.suspeita ? 'duração fora do padrão ou sem TO' : ''}"><input type="checkbox" data-p="${p.id}" ${p.excluida ? '' : 'checked'}> ${p.lado}${p.n} · ${fmt(p.t0, 1)} s</label>`).join('');

@@ -483,6 +483,23 @@ function pontosChave(curvas, rd) {
   return out;
 }
 
+// Pontos-chave da referência normal: as mesmas regras aplicadas à curva média normal; o DP é o da faixa
+// no ponto em que o valor ocorre (amplitudes ficam sem DP).
+export function pontosNormais(faixa, rd) {
+  if (!faixa?.curvas) return {};
+  const curvas = {}, rdm = { D: rd ?? 60 };
+  for (const [c, f] of Object.entries(faixa.curvas)) curvas[c] = { D: { m: f.m } };
+  const out = {};
+  for (const p of pontosChave(curvas, rdm)) {
+    if (p.D == null) continue;
+    const f = faixa.curvas[p.curva];
+    let s = null;
+    if (!/amplitude/.test(p.rotulo)) { let k = 0; f.m.forEach((v, i) => { if (Math.abs(v - p.D) < Math.abs(f.m[k] - p.D)) k = i; }); s = f.s[k]; }
+    out[p.rotulo] = { m: p.D, s };
+  }
+  return out;
+}
+
 // sugere a atividade pela fração de apoio (corrida: apoio < ~50 % do ciclo)
 export function sugerirAtividade(ev, t) {
   const pct = [];

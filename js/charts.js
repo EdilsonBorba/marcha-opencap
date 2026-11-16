@@ -25,12 +25,12 @@ export function linhasComparacao(L, vis, fmt) {
 export const PALETA = ['#1f5fd6', '#d2603a', '#2c9a5a', '#8a4fd1', '#b08a00', '#d23a8a'];
 export const infoAngulo = (c) => ANGULOS.find(a => a[0] === c);
 
-export function tracosCurva(curvas, c, cores, comDP = true, faixa = null) {
+export function tracosCurva(curvas, c, cores, comDP = true, faixa = null, opFaixa = 0.22) {
   const x = [...Array(101).keys()], tr = [];
   const fn = faixa?.curvas?.[c];
   if (fn) {
     const sup = fn.m.map((v, i) => v + fn.s[i]), inf = fn.m.map((v, i) => v - fn.s[i]);
-    tr.push({ x: [...x, ...x.slice().reverse()], y: [...sup, ...inf.reverse()], fill: 'toself', fillcolor: 'rgba(128,128,128,0.22)', line: { width: 0 }, hoverinfo: 'skip', name: 'Normal', showlegend: false });
+    tr.push({ x: [...x, ...x.slice().reverse()], y: [...sup, ...inf.reverse()], fill: 'toself', fillcolor: `rgba(128,128,128,${opFaixa})`, line: { width: 0 }, hoverinfo: 'skip', name: 'Normal', showlegend: false });
     tr.push({ x, y: fn.m, line: { color: 'rgba(128,128,128,0.9)', width: 1, dash: 'dot' }, name: 'Normal', hovertemplate: '%{x}%: %{y:.1f} (normal)<extra></extra>', showlegend: false });
   }
   for (const l of ['D', 'E']) {

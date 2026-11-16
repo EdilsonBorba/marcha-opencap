@@ -162,7 +162,7 @@ const D = [
   ['Ponto-chave (graus)', 'Key point (degrees)'], ['Lado', 'Side'], ['Usada', 'Used'], ['Suspeita', 'Suspect'], ['Início (s)', 'Start (s)'], ['Duração (s)', 'Duration (s)'], ['Apoio (s)', 'Stance (s)'], ['Apoio %', 'Stance %'], ['Balanço (s)', 'Swing (s)'],
   ['Tempo do passo (s)', 'Step time (s)'], ['Duplo apoio %', 'Double support %'], ['Voo (s)', 'Flight (s)'], ['Passada (m)', 'Stride (m)'], ['Passo (m)', 'Step (m)'], ['Largura (cm)', 'Width (cm)'],
   ['Evento', 'Event'], ['Quadro', 'Frame'], ['Tempo (s)', 'Time (s)'], ['TD (touchdown: pé toca o chão)', 'TD (touchdown: foot touches the ground)'], ['TO (toe-off: dedos deixam o chão)', 'TO (toe-off: toes leave the ground)'],
-  ['% ciclo', '% cycle'],
+  ['% ciclo', '% cycle'], ['Normal (média ± DP)', 'Normal (mean ± SD)'], ['Normal: mesma regra aplicada à curva média da referência (ver faixa e fonte na página das curvas).', 'Normal: same rule applied to the reference mean curve (see band and source on the curves page).'], ['Normal', 'Normal'],
   // palavras soltas (por último)
   ['Corrida', 'Running'], ['corrida', 'running'], ['Marcha', 'Walking'], ['marcha', 'walking'], ['Velocidade', 'Speed'], ['Pelve', 'Pelvis'], ['Quadril', 'Hip'], ['Joelho', 'Knee'], ['Tornozelo', 'Ankle'], ['Tronco', 'Trunk'],
 ];

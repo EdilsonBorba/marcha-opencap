@@ -1,4 +1,4 @@
-import { ANGULOS, VARS, unidade } from './gait.js';
+import { ANGULOS, VARS, unidade, pontosNormais } from './gait.js';
 import { tracosCurva, tracosComparacao, setasEixo, PALETA, linhasComparacao } from './charts.js';
 import { CREDITOS } from './creditos.js';
 import { tr, locale } from './i18n.js';
@@ -85,7 +85,7 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
     if (sem && ['passada', 'passo'].includes(k)) continue;
     if (y > 272) { rodape(); pdf.addPage(); y = M + 6; }
     const mdp = (x) => x.m == null ? '-' : f(x.m, d) + (x.dp != null ? ' ± ' + f(x.dp, d) : '');
-    const vals = [`${rot} (${u})`, mdp(v.D), mdp(v.E), v.si == null ? '-' : (v.si > 0 ? '+' : '') + f(v.si, 1) + '%', f(v.geral.cv, 1) + '%'];
+    const vals = [`${rot} (${u})`, mdp(v.D), mdp(v.E), v.si == null ? '-' : (v.si > 0 ? '+' : '') + f(v.si, 1) + '%', (v.geral.cv == null ? '-' : f(v.geral.cv, 1) + '%')];
     vals.forEach((s, i) => txt(s, cols[i] + (i ? 26 : 0), y, { s: 8.5, al: i ? 'right' : undefined, b: i === 3 && Math.abs(v.si ?? 0) >= 10 }));
     y += 5;
   }
@@ -94,13 +94,18 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
   // pontos-chave
   const pontos = vis.pontos ? R.pontos.filter(p => vis.curvas.includes(p.curva)) : [];
   if (pontos.length) { txt('Pontos-chave das curvas (graus)', M, y, { s: 11, b: true }); y += 5;
-  ['Ponto', 'Direito', 'Esquerdo', 'D - E'].forEach((h, i) => txt(h, [M, M + 128, M + 150, M + 172][i], y, { s: 8, b: true, c: i === 1 ? CORES.D : i === 2 ? CORES.E : '#555', al: i ? 'right' : undefined }));
+  const nrm = vis.faixa ? pontosNormais(vis.faixa, R.rdMedio.D) : {}, temN = Object.keys(nrm).length > 0;
+  const xs = temN ? [M, M + 108, M + 128, M + 146, M + 180] : [M, M + 128, M + 150, M + 172];
+  ['Ponto', 'Direito', 'Esquerdo', 'D - E', ...(temN ? ['Normal (média ± DP)'] : [])].forEach((h, i) => txt(h, xs[i], y, { s: 8, b: true, c: i === 1 ? CORES.D : i === 2 ? CORES.E : '#555', al: i ? 'right' : undefined }));
   y += 2; linha(y); y += 4.5;
   for (const p of pontos) {
     if (y > 272) { rodape(); pdf.addPage(); y = M + 6; }
-    [p.rotulo, f(p.D, 0), f(p.E, 0), p.D != null && p.E != null ? f(p.D - p.E, 0) : '-'].forEach((s, i) => txt(s, [M, M + 128, M + 150, M + 172][i], y, { s: 8.5, al: i ? 'right' : undefined }));
+    const n = nrm[p.rotulo];
+    [p.rotulo, f(p.D, 0), f(p.E, 0), p.D != null && p.E != null ? f(p.D - p.E, 0) : '-', ...(temN ? [n ? f(n.m, 0) + (n.s != null ? ' ± ' + f(n.s, 0) : '') : ''] : [])]
+      .forEach((s, i) => txt(s, xs[i], y, { s: 8.5, al: i ? 'right' : undefined, c: i === 4 ? '#666' : undefined }));
     y += 5;
   }
+  if (temN) { txt('Normal: mesma regra aplicada à curva média da referência (ver faixa e fonte na página das curvas).', M, y, { s: 7, c: '#777' }); y += 5; }
   }
   if (D.obs) {
     y += 4; txt('Observações', M, y, { s: 11, b: true }); y += 5;
@@ -125,7 +130,7 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
     if (i > 0 && i % 8 === 0) { rodape(); pdf.addPage(); y = M; }
     const k = i % 8;
     const shapes = ['D', 'E'].filter(l => R.rdMedio[l] != null).map(l => ({ type: 'line', x0: R.rdMedio[l], x1: R.rdMedio[l], yref: 'paper', y0: 0, y1: 1, line: { color: CORES[l], dash: 'dash', width: 1 } }));
-    const img = await imagem(tracosCurva(R.curvas, c, CORES, vis.dp, vis.faixa), rot, shapes, false, vis.setas ? setasEixo(c, '#555', 11, 56) : [], unidade(c));
+    const img = await imagem(tracosCurva(R.curvas, c, CORES, vis.dp, vis.faixa, 0.35), rot, shapes, false, vis.setas ? setasEixo(c, '#555', 11, 56) : [], unidade(c));
     pdf.addImage(img, 'JPEG', M + (k % 2) * (w + 6), y + Math.floor(k / 2) * (h + 3), w, h);
   }
   rodape();
