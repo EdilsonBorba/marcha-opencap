@@ -91,7 +91,7 @@ function regularidade(sig, fs, T) {
 // Plano do chão/esteira: ajusta y = a + b·u + c·v (u = ântero-posterior, v = médio-lateral) nos pontos
 // em que os pés estão apoiados (20 % mais baixos de cada marcador). Funciona com esteira inclinada e
 // com o chão do OpenCap levemente torto. Devolve a altura de um marcador acima desse plano.
-export function planoChao(trc, d) {
+export function planoChao(trc, d, inclPct = null) {
   const P = marcadoresPe(trc);
   const mks = [P.calcR, P.calcL, P.toeR, P.toeL];
   const rows = [];
@@ -107,13 +107,19 @@ export function planoChao(trc, d) {
   for (const r of rows) for (let i = 0; i < 3; i++) { bb[i] += r[i] * r[3]; for (let j = 0; j < 3; j++) A[i][j] += r[i] * r[j]; }
   const det = (M) => M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) - M[0][1] * (M[1][0] * M[2][2] - M[1][2] * M[2][0]) + M[0][2] * (M[1][0] * M[2][1] - M[1][1] * M[2][0]);
   const D = det(A), coef = [0, 1, 2].map(k => det(A.map((row, i) => row.map((v, j) => j === k ? bb[i] : v))) / D);
-  const [a, b, c] = coef;
+  let [a, b, c] = coef;
+  if (inclPct != null && isFinite(inclPct)) {
+    // inclinação informada (% de rampa = tangente × 100): fixa a inclinação e ajusta só a altura do plano
+    b = inclPct / 100; c = 0;
+    const res = rows.map(r => r[3] - b * r[1]).sort((x, y) => x - y);
+    a = res[Math.floor(res.length / 2)];
+  }
   const altura = (m) => Float64Array.from(m.y, (y, i) => y - (a + b * (m.x[i] * d.x + m.z[i] * d.z) + c * (-m.x[i] * d.z + m.z[i] * d.x)));
-  return { altura, inclinacao: Math.atan(b) * 180 / Math.PI, inclLateral: Math.atan(c) * 180 / Math.PI };
+  return { altura, inclinacao: Math.atan(b) * 180 / Math.PI, inclLateral: Math.atan(c) * 180 / Math.PI, informada: inclPct != null && isFinite(inclPct) };
 }
 
 // metodo: 'zeni' | 'patoz' | 'vertical' | undefined (automático: marcha → zeni; corrida → patoz)
-export function detectarEventos(trc, mot, ambiente, atividade, metodoEscolhido) {
+export function detectarEventos(trc, mot, ambiente, atividade, metodoEscolhido, inclPct = null) {
   const fs = trc.rate || 1 / (trc.time[1] - trc.time[0]);
   const P = marcadoresPe(trc), d = direcao(trc, ambiente);
   const proj = (m) => Float64Array.from(m.x, (_, i) => (m.x[i] - P.sac.x[i]) * d.x + (m.z[i] - P.sac.z[i]) * d.z);
@@ -128,8 +134,8 @@ export function detectarEventos(trc, mot, ambiente, atividade, metodoEscolhido) 
   const cadencia = 120 / T;
   const ativ = atividade || (cadencia >= 140 ? 'corrida' : 'marcha');
   const qualidade = Math.min(regularidade(sinais.calcR, fs, T), regularidade(sinais.calcL, fs, T));
-  const chao = planoChao(trc, d);
-  const base = { sinais, fs, periodo: T, dir: d, atividade: ativ, qualidade, inclinacao: chao.inclinacao, inclLateral: chao.inclLateral };
+  const chao = planoChao(trc, d, inclPct);
+  const base = { sinais, fs, periodo: T, dir: d, atividade: ativ, qualidade, inclinacao: chao.inclinacao, inclLateral: chao.inclLateral, inclInformada: chao.informada };
   const metodo = metodoEscolhido || (ativ === 'corrida' ? 'patoz' : 'zeni');
   base.metodoId = metodo;
   if (metodo === 'patoz') {
@@ -210,17 +216,26 @@ export function detectarEventos(trc, mot, ambiente, atividade, metodoEscolhido) 
 }
 
 // ---------- variáveis ----------
+// [coluna, título, sentido positivo, sentido negativo, opções]
+// global: coordenada única (pelve/tronco); espelhaE: inverte o sinal nas passadas esquerdas para que
+// os dois lados tenham o mesmo significado; inverte: troca o sinal do OpenSim (convenção clínica).
 export const ANGULOS = [
-  ['hip_flexion', 'Quadril · flexão (+) / extensão'],
-  ['knee_angle', 'Joelho · flexão'],
-  ['ankle_angle', 'Tornozelo · dorsiflexão (+) / plantiflexão'],
-  ['hip_adduction', 'Quadril · adução (+) / abdução'],
-  ['hip_rotation', 'Quadril · rotação interna (+) / externa'],
-  ['pelvis_tilt', 'Pelve · inclinação (plano sagital)'],
-  ['pelvis_list', 'Pelve · obliquidade (plano frontal)'],
-  ['pelvis_rotation', 'Pelve · rotação (plano transversal)'],
+  ['hip_flexion', 'Quadril · flexão / extensão', 'Flexão', 'Extensão', {}],
+  ['knee_angle', 'Joelho · flexão / extensão', 'Flexão', 'Extensão', {}],
+  ['ankle_angle', 'Tornozelo · dorsi / plantiflexão', 'Dorsiflexão', 'Plantiflexão', {}],
+  ['hip_adduction', 'Quadril · adução / abdução', 'Adução', 'Abdução', {}],
+  ['hip_rotation', 'Quadril · rotação', 'Interna', 'Externa', {}],
+  ['pelvis_tilt', 'Pelve · inclinação ântero-posterior', 'Anteversão', 'Retroversão', { global: true, inverte: true }],
+  ['pelvis_list', 'Pelve · obliquidade (lado = membro do ciclo)', 'Lado desce', 'Lado sobe', { global: true, espelhaE: true }],
+  ['pelvis_rotation', 'Pelve · rotação (lado = membro do ciclo)', 'Lado à frente', 'Lado atrás', { global: true, espelhaE: true }],
+  ['lumbar_extension', 'Tronco · extensão / flexão (em relação à pelve)', 'Extensão', 'Flexão', { global: true }],
+  ['lumbar_bending', 'Tronco · inclinação lateral (em relação à pelve)', 'Para o lado', 'Lado oposto', { global: true, espelhaE: true }],
 ];
-const PELVE = ['pelvis_tilt', 'pelvis_list', 'pelvis_rotation'];
+export const PREDEF = {
+  marcha: { nome: 'Marcha clínica', curvas: ['hip_flexion', 'knee_angle', 'ankle_angle', 'hip_adduction'] },
+  corrida: { nome: 'Corrida', curvas: ['hip_flexion', 'knee_angle', 'ankle_angle', 'hip_adduction', 'hip_rotation', 'pelvis_list'] },
+  completo: { nome: 'Completo', curvas: ANGULOS.map(a => a[0]) },
+};
 
 function interp101(t, y, t0, t1) {
   const out = new Float64Array(101);
@@ -284,11 +299,12 @@ export function analisar(trial, ev, cfg) {
       }
       // curvas normalizadas
       p.curvas = {};
-      for (const [c] of ANGULOS) {
-        const col = PELVE.includes(c) ? c : c + L.s;
+      for (const [c, , , , o] of ANGULOS) {
+        const col = o.global ? c : c + L.s;
         if (!trial.mot.cols[col]) continue;
         let y = trial.mot.cols[col];
-        if (lado === 'E' && (c === 'pelvis_list' || c === 'pelvis_rotation')) y = y.map(v => -v); // mesma convenção para os dois lados
+        const sinal = (o.inverte ? -1 : 1) * (lado === 'E' && o.espelhaE ? -1 : 1);
+        if (sinal < 0) y = y.map(v => -v);
         p.curvas[c] = interp101(t, y, t[a], t[b]);
       }
       passadas.push(p);
@@ -373,10 +389,12 @@ function pontosChave(curvas, rd) {
     ['Tornozelo · pico de plantiflexão', 'ankle_angle', (a) => min(a, 0, 100)],
     ['Pelve · amplitude de obliquidade', 'pelvis_list', (a) => max(a, 0, 100) - min(a, 0, 100)],
     ['Pelve · amplitude de rotação', 'pelvis_rotation', (a) => max(a, 0, 100) - min(a, 0, 100)],
+    ['Quadril · pico de adução no apoio', 'hip_adduction', (a, r) => max(a, 0, r)],
+    ['Pelve · pico de queda do lado oposto no apoio', 'pelvis_list', (a, r) => -min(a, 0, r)],
   ];
-  for (const [rot, c, f] of def) out.push({ rotulo: rot, D: val(c, 'D', f), E: val(c, 'E', f) });
+  for (const [rot, c, f] of def) out.push({ rotulo: rot, curva: c, D: val(c, 'D', f), E: val(c, 'E', f) });
   for (const [c, rot] of [['hip_flexion', 'Quadril'], ['knee_angle', 'Joelho'], ['ankle_angle', 'Tornozelo']])
-    out.push({ rotulo: rot + ' · amplitude sagital', D: val(c, 'D', a => max(a, 0, 100) - min(a, 0, 100)), E: val(c, 'E', a => max(a, 0, 100) - min(a, 0, 100)) });
+    out.push({ rotulo: rot + ' · amplitude sagital', curva: c, D: val(c, 'D', a => max(a, 0, 100) - min(a, 0, 100)), E: val(c, 'E', a => max(a, 0, 100) - min(a, 0, 100)) });
   return out;
 }
 

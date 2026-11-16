@@ -47,7 +47,10 @@
       <label class="radio"><input type="radio" name="amb" value="esteira" checked> Esteira</label>
       <label class="radio"><input type="radio" name="amb" value="solo"> Solo</label>
     </fieldset>
-    <label id="lbl-vel">Velocidade da esteira (km/h)<input id="in-vel" type="number" step="0.1" min="0" placeholder="obrigatório na esteira"></label>
+    <label class="so-esteira">Velocidade da esteira (km/h)<input id="in-vel" type="number" step="0.1" min="0" placeholder="obrigatório na esteira"></label>
+    <label class="so-esteira">Inclinação da esteira
+      <span class="campo-unid"><input id="in-incl" type="number" step="0.5" placeholder="vazio = estimar"><select id="sel-incl-un"><option value="pct">%</option><option value="grau">°</option></select></span>
+    </label>
     <label>Atividade<select id="sel-ativ"><option value="">Automático</option><option value="marcha">Marcha</option><option value="corrida">Corrida</option></select></label>
     <label>Detecção dos eventos<select id="sel-metodo"><option value="">Automático (marcha: Zeni · corrida: Patoz)</option><option value="zeni">Posição do pé em relação ao sacro (Zeni et al., 2008)</option><option value="patoz">Aceleração e altura do calcâneo e dedos (Patoz et al., 2021)</option><option value="vertical">Velocidade vertical do pé (Leitch et al., 2011)</option></select></label>
   </div>
@@ -56,38 +59,62 @@
 </section>
 
 <section id="s-revisao" class="card" hidden>
-  <h2><span class="n">3</span> Conferir os eventos no vídeo</h2>
-  <p class="dica">Os eventos foram detectados automaticamente. Confira no vídeo: CI = contato inicial, RD = retirada do pé (saída dos dedos). Clique no gráfico para ir àquele instante.</p>
+  <h2><span class="n">3</span> Conferir os eventos</h2>
   <div class="revisao">
-    <div class="video-box">
-      <div class="linha"><label class="inline">Câmera <select id="sel-cam"></select></label><span id="video-status" class="status"></span></div>
-      <video id="video" muted playsinline preload="auto"></video>
+    <div class="visor">
+      <div class="linha">
+        <label class="inline">Mostrar <select id="sel-visao"><option value="ambos">Vídeo + esqueleto</option><option value="video">Só vídeo</option><option value="esqueleto">Só esqueleto</option></select></label>
+        <label class="inline">Câmera <select id="sel-cam"></select></label>
+        <label class="inline">Esqueleto <select id="sel-vista"><option value="lateral">De lado</option><option value="frontal">De frente</option><option value="cima">De cima</option></select></label>
+        <span id="video-status" class="status"></span>
+      </div>
+      <div class="telas">
+        <div class="tela" id="tela-video"><video id="video" muted playsinline preload="auto"></video></div>
+        <div class="tela" id="tela-esq"><canvas id="esqueleto"></canvas></div>
+      </div>
       <div class="linha controles">
-        <button data-step="-10">−10</button><button data-step="-1">−1</button>
-        <button id="btn-play">▶︎</button>
-        <button data-step="1">+1</button><button data-step="10">+10</button>
+        <button data-step="-10" title="10 quadros para trás">−10</button><button data-step="-1" title="1 quadro para trás (,)">−1</button>
+        <button id="btn-play" class="prim" title="tocar / pausar (espaço)">▶︎</button>
+        <button data-step="1" title="1 quadro para frente (.)">+1</button><button data-step="10" title="10 quadros para frente">+10</button>
+        <label class="inline">Velocidade <select id="sel-rate"><option value="0.1">0,1×</option><option value="0.25">0,25×</option><option value="0.5" selected>0,5×</option><option value="1">1×</option></select></label>
+        <label class="radio"><input type="checkbox" id="chk-loop"> repetir o trecho visível</label>
         <span id="tempo" class="mono"></span>
       </div>
-      <input id="slider" type="range" min="0" value="0" step="1">
     </div>
-    <div class="eventos-box">
-      <div id="plot-linha" class="plot-linha"></div>
+    <div class="linha-tempo">
+      <div id="timeline" class="timeline"></div>
       <div class="linha botoes-ev">
-        <span class="lado d">Direito</span><button data-ev="CI_D" class="ev d">+ CI</button><button data-ev="RD_D" class="ev d">+ RD</button>
-        <span class="lado e">Esquerdo</span><button data-ev="CI_E" class="ev e">+ CI</button><button data-ev="RD_E" class="ev e">+ RD</button>
-        <button id="btn-remover">Remover evento mais próximo</button>
+        <span class="dica">Marcar no quadro atual:</span>
+        <button data-ev="CI_D" class="ev d">CI direito <kbd>Q</kbd></button><button data-ev="RD_D" class="ev d">RD direito <kbd>W</kbd></button>
+        <button data-ev="CI_E" class="ev e">CI esquerdo <kbd>O</kbd></button><button data-ev="RD_E" class="ev e">RD esquerdo <kbd>P</kbd></button>
+        <button id="btn-remover">Apagar selecionado <kbd>Del</kbd></button>
       </div>
       <div class="linha">
-        <span class="dica">Trecho analisado:</span>
-        <button id="btn-ini">Começar aqui</button><button id="btn-fim">Terminar aqui</button><button id="btn-estavel">Trecho estável (auto)</button><button id="btn-tudo">Trial inteiro</button>
         <button id="btn-redetectar" class="sec">Detectar de novo</button>
+        <button id="btn-estavel" class="sec">Trecho estável (auto)</button>
+        <button id="btn-tudo" class="sec">Trial inteiro</button>
       </div>
+      <p class="dica">Barra = apoio (do contato inicial ▼ até a retirada do pé ▮). <b>Clique</b> num evento para selecionar e <b>arraste</b>, ou use <kbd>←</kbd> <kbd>→</kbd> (1 quadro; <kbd>Shift</kbd> = 5). Sem evento selecionado, as setas andam no vídeo e <kbd>espaço</kbd> toca/pausa. Na faixa de cima, arraste as <b>alças</b> para cortar o início e o fim. Roda do mouse = zoom.</p>
+      <details class="sinal"><summary>Ver o sinal usado na detecção</summary><div id="plot-linha" class="plot-linha"></div></details>
     </div>
   </div>
 </section>
 
 <section id="s-resultados" class="card" hidden>
   <h2><span class="n">4</span> Resultados</h2>
+  <details id="painel-vis" class="painel-vis">
+    <summary>O que mostrar (na tela e no laudo)</summary>
+    <div class="linha"><span class="dica">Predefinições:</span><button data-pre="marcha">Marcha clínica</button><button data-pre="corrida">Corrida</button><button data-pre="completo">Completo</button></div>
+    <div class="vis-grade">
+      <div><h4>Curvas</h4><div id="vis-curvas"></div></div>
+      <div><h4>Variáveis</h4><div id="vis-vars"></div></div>
+      <div><h4>Outros</h4>
+        <label class="radio"><input type="checkbox" id="vis-pontos" checked> Pontos-chave das curvas</label>
+        <label class="radio"><input type="checkbox" id="vis-setas" checked> Setas de sentido no eixo</label>
+        <label class="radio"><input type="checkbox" id="vis-dp" checked> Faixa de ±1 DP</label>
+      </div>
+    </div>
+  </details>
   <div id="cards" class="cards"></div>
   <div class="duas">
     <div>
@@ -95,7 +122,7 @@
       <table id="tab-et" class="tab"></table>
       <p class="dica">Simetria = (D − E) / média(D, E) × 100. Positivo: maior à direita. CV = variabilidade entre passadas.</p>
     </div>
-    <div>
+    <div id="bloco-pontos">
       <h3>Pontos-chave das curvas (graus)</h3>
       <table id="tab-pontos" class="tab"></table>
     </div>
@@ -133,7 +160,7 @@
 </main>
 
 <footer class="rodape">
-  Estimativas a partir de vídeo (OpenCap). Use com julgamento clínico. Eventos detectados automaticamente (marcha: Zeni et al., 2008; corrida: Patoz et al., 2021) e conferidos no vídeo. Altura do pé medida em relação ao plano da esteira/chão (lida com inclinação).
+  Estimativas a partir de vídeo (OpenCap). Use com julgamento clínico. Eventos detectados automaticamente (marcha: Zeni et al., 2008; corrida: Patoz et al., 2021) e conferidos no vídeo. Altura do pé medida em relação ao plano da esteira/chão. · <a href="https://github.com/EdilsonBorba/marcha-opencap" target="_blank">código</a>
 </footer>
 <script type="module" src="js/app.js"></script>
 </body>

@@ -1,15 +1,34 @@
 import { abrirZip, abrirArquivosDePasta, lerItensArrastados, carregarTrial, urlVideo } from './io.js';
-import { detectarEventos, analisar, trechoEstavel, ANGULOS, VARS } from './gait.js';
+import { detectarEventos, analisar, trechoEstavel, ANGULOS, VARS, PREDEF } from './gait.js';
 import { gerarPDF, gerarExcel } from './report.js';
-import { tracosCurva, tracosComparacao, PALETA } from './charts.js';
+import { tracosCurva, tracosComparacao, setasEixo, PALETA } from './charts.js';
+import { criarTimeline } from './timeline.js';
+import { desenharEsqueleto } from './skeleton.js';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const fmt = (v, d = 1) => (v == null || !isFinite(v)) ? '–' : (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
 
-const estado = { sessoes: [], analises: new Map(), atual: null, frame: 0, videoURL: null };
-window.__estado = estado; // para depuração no console
+const estado = { sessoes: [], analises: new Map(), atual: null, frame: 0, videoURL: null, tocando: false };
+window.__estado = estado;
+
+// ---------------- preferências de visualização ----------------
+const VIS_PADRAO = { curvas: PREDEF.marcha.curvas, vars: VARS.map(v => v[0]), pontos: true, setas: true, dp: true };
+let vis = carregarVis();
+function carregarVis() { try { return { ...VIS_PADRAO, ...JSON.parse(localStorage.getItem('marcha-opencap:vis') || '{}') }; } catch { return { ...VIS_PADRAO }; } }
+function salvarVis() { try { localStorage.setItem('marcha-opencap:vis', JSON.stringify(vis)); } catch {} }
+
+function montarPainelVis() {
+  $('#vis-curvas').innerHTML = ANGULOS.map(([c, t]) => `<label class="radio"><input type="checkbox" data-vc="${c}" ${vis.curvas.includes(c) ? 'checked' : ''}> ${t}</label>`).join('');
+  $('#vis-vars').innerHTML = VARS.map(([k, t]) => `<label class="radio"><input type="checkbox" data-vv="${k}" ${vis.vars.includes(k) ? 'checked' : ''}> ${t}</label>`).join('');
+  $$('[data-vc]').forEach(c => c.onchange = () => { vis.curvas = $$('[data-vc]').filter(x => x.checked).map(x => x.dataset.vc); salvarVis(); redesenharResultados(); });
+  $$('[data-vv]').forEach(c => c.onchange = () => { vis.vars = $$('[data-vv]').filter(x => x.checked).map(x => x.dataset.vv); salvarVis(); redesenharResultados(); });
+  $('#vis-pontos').checked = vis.pontos; $('#vis-setas').checked = vis.setas; $('#vis-dp').checked = vis.dp;
+}
+$$('[data-pre]').forEach(b => b.onclick = () => { vis.curvas = [...PREDEF[b.dataset.pre].curvas]; salvarVis(); montarPainelVis(); redesenharResultados(); });
+for (const k of ['pontos', 'setas', 'dp']) $('#vis-' + k).onchange = (e) => { vis[k] = e.target.checked; salvarVis(); redesenharResultados(); };
+montarPainelVis();
 
 // ---------------- 1. carregar ----------------
 const drop = $('#drop');
@@ -25,35 +44,33 @@ drop.ondrop = async (e) => {
   try { const ss = await lerItensArrastados(e.dataTransfer); for (const s of ss) registrar(s); if (!ss.length) status('#carregar-status', 'Arraste um arquivo .zip ou uma pasta do OpenCap.', true); }
   catch (err) { status('#carregar-status', err.message, true); }
 };
-
 async function adicionar(fn, nome) {
   status('#carregar-status', `Lendo ${nome || 'pasta'}…`);
   try { registrar(await fn()); } catch (err) { console.error(err); status('#carregar-status', 'Não consegui ler: ' + err.message, true); }
 }
-
-function registrar(s) {
+export function registrar(s) {
   estado.sessoes.push(s);
   status('#carregar-status', `${estado.sessoes.length} sessão(ões) carregada(s).`);
-  const li = document.createElement('li');
-  const m = s.meta;
+  const li = document.createElement('li'); const m = s.meta;
   li.innerHTML = `<b>${esc(s.nome)}</b> <span class="dica">${s.trials.length} trials · ${s.cams.length} câmera(s)${m.altura ? ` · ${fmt(m.altura, 2)} m` : ''}${m.massa ? ` · ${fmt(m.massa, 0)} kg` : ''}</span>`;
   $('#lista-sessoes').appendChild(li);
   montarSelTrial();
   $('#s-trial').hidden = false;
   if (!estado.atual) selecionar(chave(s, s.trials.find(t => s.files.has(`MarkerData/${t}.trc`)) || s.trials[0]));
 }
+window.__registrarSessao = registrar;
 
 const chave = (s, t) => `${s.id}|${t}`;
 function montarSelTrial() {
-  const sel = $('#sel-trial'); const atual = sel.value;
+  const sel = $('#sel-trial'); const at = sel.value;
   sel.innerHTML = estado.sessoes.map(s => `<optgroup label="${esc(s.nome)}">${s.trials.map(t => `<option value="${chave(s, t)}">${esc(t)}${estado.analises.get(chave(s, t))?.res ? ' ✓' : ''}</option>`).join('')}</optgroup>`).join('');
-  if (atual) sel.value = atual;
+  if (at) sel.value = at;
 }
 $('#sel-trial').onchange = (e) => selecionar(e.target.value);
 
 // ---------------- 2. trial ----------------
 async function selecionar(k) {
-  $('#sel-trial').value = k;
+  $('#sel-trial').value = k; pausar();
   estado.atual = k;
   let A = estado.analises.get(k);
   if (!A) {
@@ -63,7 +80,9 @@ async function selecionar(k) {
     try {
       const trial = await carregarTrial(sessao, nome);
       if (!trial.trc) throw new Error('Este trial não tem MarkerData/' + nome + '.trc.');
-      A = { k, sessao, trial, cfg: { ambiente: 'esteira', velEsteira: null, atividade: '', metodo: '', janela: null, excluidos: null }, rotulo: nome };
+      const ant = [...estado.analises.values()].pop();  // herda local e inclinação do trial anterior
+      A = { k, sessao, trial, rotulo: nome,
+        cfg: { ambiente: ant?.cfg.ambiente || 'esteira', velEsteira: null, incl: ant?.cfg.incl ?? null, inclUn: ant?.cfg.inclUn || 'pct', atividade: '', metodo: '', janela: null, excluidos: null } };
       estado.analises.set(k, A);
       detectar(A);
     } catch (err) { console.error(err); status('#trial-info', err.message, true); return; }
@@ -73,8 +92,9 @@ async function selecionar(k) {
   recalcular();
 }
 
+const inclPct = (c) => c.incl == null ? null : c.inclUn === 'grau' ? Math.tan(c.incl * Math.PI / 180) * 100 : c.incl;
 function detectar(A) {
-  const d = detectarEventos(A.trial.trc, A.trial.mot, A.cfg.ambiente, A.cfg.atividade || undefined, A.cfg.metodo || undefined);
+  const d = detectarEventos(A.trial.trc, A.trial.mot, A.cfg.ambiente, A.cfg.atividade || undefined, A.cfg.metodo || undefined, A.cfg.ambiente === 'esteira' ? inclPct(A.cfg) : null);
   A.det = d; A.eventos = structuredClone(d.eventos); A.cfg.excluidos = null;
   A.cfg.janela = trechoEstavel(d.eventos, A.trial.mot.time);
   A.janelaAuto = !!A.cfg.janela;
@@ -85,151 +105,192 @@ function preencherForm(A) {
   $('#in-rotulo').value = A.rotulo;
   $$('input[name=amb]').forEach(r => r.checked = r.value === c.ambiente);
   $('#in-vel').value = c.velEsteira ?? '';
-  $('#lbl-vel').style.display = c.ambiente === 'esteira' ? '' : 'none';
+  $('#in-incl').value = c.incl ?? '';
+  $('#sel-incl-un').value = c.inclUn;
+  $$('.so-esteira').forEach(e => e.style.display = c.ambiente === 'esteira' ? '' : 'none');
   $('#sel-ativ').value = c.atividade;
   $('#sel-metodo').value = c.metodo;
-  const t = A.trial.mot.time, d = A.det;
+  infoTrial(A);
+}
+function infoTrial(A) {
+  const t = A.trial.mot.time, d = A.det, j = A.cfg.janela;
+  const incl = A.cfg.ambiente !== 'esteira' ? '' : d.inclInformada
+    ? `<br>Inclinação informada: ${fmt(Math.atan(inclPct(A.cfg) / 100) * 180 / Math.PI, 1)}° = ${fmt(inclPct(A.cfg), 1)}%`
+    : `<br>Inclinação estimada: ${fmt(d.inclinacao, 1)}° = ${fmt(Math.tan(d.inclinacao * Math.PI / 180) * 100, 1)}% <span class="dica">· estimativa pelos pés apoiados, erro de cerca de ±2°; se souber, informe acima</span>`;
   $('#trial-info').classList.remove('erro');
-  const j = c.janela;
-  $('#trial-info').innerHTML = `Duração ${fmt(t[t.length - 1], 1)} s · ${fmt(1 / (t[1] - t[0]), 0)} quadros/s · atividade detectada: <b>${d.atividade}</b> · método: ${d.metodo}` +
-    `<br>Inclinação estimada do chão/esteira: ${fmt(d.inclinacao, 1)}° (ântero-posterior) · ${fmt(d.inclLateral, 1)}° (lateral) <span class="dica">(estimativa a partir dos pés apoiados; precisão de cerca de ±2°)</span>` +
-    (j ? `<br>Trecho analisado: <b>${fmt(t[j[0]], 1)} a ${fmt(t[j[1]], 1)} s</b>${A.janelaAuto ? ' (trecho estável detectado automaticamente; ajuste no passo 3)' : ''}` : '<br>Trecho analisado: trial inteiro');
+  $('#trial-info').innerHTML = `Duração ${fmt(t[t.length - 1], 1)} s · ${fmt(1 / (t[1] - t[0]), 0)} quadros/s · atividade: <b>${A.cfg.atividade || d.atividade}</b> · método: ${d.metodo}` + incl +
+    (j ? `<br>Trecho analisado: <b>${fmt(t[j[0]], 1)} a ${fmt(t[j[1]], 1)} s</b>${A.janelaAuto ? ' (trecho estável detectado automaticamente)' : ''}` : '<br>Trecho analisado: trial inteiro');
   const al = $('#alerta-qualidade');
   if (d.qualidade < 0.6) {
     al.hidden = false;
-    al.innerHTML = `<b>Atenção:</b> o movimento dos pés neste trial é pouco regular (índice ${fmt(d.qualidade, 2)}; bom ≥ 0,6). Pode ser falha de rastreamento do OpenCap. Confira os eventos no vídeo antes de usar os números.`;
+    al.innerHTML = `<b>Atenção:</b> o movimento dos pés neste trial é pouco regular (índice ${fmt(d.qualidade, 2)}; bom ≥ 0,6). Provável falha de rastreamento do OpenCap. Confira no vídeo e no esqueleto antes de usar os números.`;
   } else al.hidden = true;
 }
 
 const atual = () => estado.analises.get(estado.atual);
+const num = (v) => { const x = parseFloat(String(v).replace(',', '.')); return isFinite(x) ? x : null; };
+function redetectar() { const A = atual(); if (!A) return; detectar(A); preencherForm(A); tl.set(A); tl.redesenhar(); desenharSinal(); recalcular(); }
 $('#in-rotulo').oninput = (e) => { const A = atual(); if (A) { A.rotulo = e.target.value; montarComparar(); } };
-$$('input[name=amb]').forEach(r => r.onchange = () => { const A = atual(); if (!A) return; A.cfg.ambiente = r.value; detectar(A); preencherForm(A); desenharLinha(); recalcular(); });
-$('#in-vel').oninput = (e) => { const A = atual(); if (!A) return; A.cfg.velEsteira = parseFloat(String(e.target.value).replace(',', '.')) || null; recalcular(); };
-$('#sel-ativ').onchange = (e) => { const A = atual(); if (!A) return; A.cfg.atividade = e.target.value; detectar(A); preencherForm(A); desenharLinha(); recalcular(); };
-$('#sel-metodo').onchange = (e) => { const A = atual(); if (!A) return; A.cfg.metodo = e.target.value; detectar(A); preencherForm(A); desenharLinha(); recalcular(); };
+$$('input[name=amb]').forEach(r => r.onchange = () => { const A = atual(); if (!A) return; A.cfg.ambiente = r.value; redetectar(); });
+$('#in-vel').oninput = (e) => { const A = atual(); if (!A) return; A.cfg.velEsteira = num(e.target.value); recalcular(); };
+$('#in-incl').onchange = (e) => { const A = atual(); if (!A) return; A.cfg.incl = num(e.target.value); redetectar(); };
+$('#sel-incl-un').onchange = (e) => { const A = atual(); if (!A) return; A.cfg.inclUn = e.target.value; if (A.cfg.incl != null) redetectar(); };
+$('#sel-ativ').onchange = (e) => { const A = atual(); if (!A) return; A.cfg.atividade = e.target.value; redetectar(); };
+$('#sel-metodo').onchange = (e) => { const A = atual(); if (!A) return; A.cfg.metodo = e.target.value; redetectar(); };
 
 // ---------------- 3. revisão ----------------
-const video = $('#video'), slider = $('#slider');
+const video = $('#video'), canvas = $('#esqueleto');
+const tl = criarTimeline($('#timeline'), {
+  onSeek: (f) => { pausar(); irPara(f); },
+  onChange: () => { const A = atual(); A.cfg.excluidos = null; desenharSinal(); recalcular(); },
+  onJanela: () => { const A = atual(); A.janelaAuto = false; A.cfg.excluidos = null; infoTrial(A); recalcular(); },
+});
+
 async function mostrarRevisao(A) {
   $('#s-revisao').hidden = false;
   const cams = Object.keys(A.trial.videos);
   $('#sel-cam').innerHTML = cams.length ? cams.map(c => `<option>${c}</option>`).join('') : '<option value="">sem vídeo</option>';
-  slider.max = A.trial.mot.time.length - 1;
-  estado.frame = Math.min(estado.frame, slider.max);
+  estado.frame = Math.min(estado.frame, A.trial.mot.time.length - 1);
+  if (A.cfg.janela && (estado.frame < A.cfg.janela[0] || estado.frame > A.cfg.janela[1])) estado.frame = A.cfg.janela[0];
+  aplicarVisao();
   await trocarVideo();
-  desenharLinha();
-  irPara(estado.frame);
+  tl.set(A); desenharSinal(); irPara(estado.frame);
 }
 $('#sel-cam').onchange = trocarVideo;
+$('#sel-visao').onchange = () => { aplicarVisao(); desenharEsq(); };
+$('#sel-vista').onchange = () => desenharEsq();
+function aplicarVisao() {
+  const v = $('#sel-visao').value;
+  $('#tela-video').hidden = v === 'esqueleto';
+  $('#tela-esq').hidden = v === 'video';
+  $('.telas').classList.toggle('um', v !== 'ambos');
+}
 async function trocarVideo() {
   const A = atual(); const cam = $('#sel-cam').value;
   if (estado.videoURL) URL.revokeObjectURL(estado.videoURL);
   estado.videoURL = null; video.removeAttribute('src'); video.load();
-  if (!cam) { $('#video-status').textContent = 'Este trial não tem vídeo sincronizado.'; return; }
+  if (!cam) {
+    $('#video-status').textContent = 'Este trial não tem vídeo sincronizado; use o esqueleto.';
+    if ($('#sel-visao').value !== 'esqueleto') { $('#sel-visao').value = 'esqueleto'; aplicarVisao(); }
+    return;
+  }
   $('#video-status').textContent = 'carregando vídeo…';
-  try { estado.videoURL = await urlVideo(A.sessao, A.trial.videos[cam]); video.src = estado.videoURL; $('#video-status').textContent = ''; video.currentTime = A.trial.mot.time[estado.frame] || 0; }
-  catch (err) { $('#video-status').textContent = 'Não consegui abrir o vídeo.'; }
+  try {
+    estado.videoURL = await urlVideo(A.sessao, A.trial.videos[cam]); video.src = estado.videoURL;
+    video.playbackRate = +$('#sel-rate').value;
+    $('#video-status').textContent = ''; video.currentTime = A.trial.mot.time[estado.frame] || 0;
+  } catch (err) { console.error(err); $('#video-status').textContent = 'Não consegui abrir o vídeo.'; }
 }
 
-function irPara(i, deVideo = false) {
+function irPara(i) {
   const A = atual(); if (!A) return;
   const t = A.trial.mot.time;
   i = Math.max(0, Math.min(t.length - 1, Math.round(i)));
-  estado.frame = i; slider.value = i;
+  estado.frame = i;
   $('#tempo').textContent = `${fmt(t[i], 2)} s · quadro ${i}`;
-  if (!deVideo && video.src && Math.abs(video.currentTime - t[i]) > 0.004) video.currentTime = t[i];
-  moverCursor();
+  if (!estado.tocando && video.src && Math.abs(video.currentTime - t[i]) > 0.004) video.currentTime = t[i];
+  tl.setFrame(i);
+  desenharEsq();
 }
-slider.oninput = () => irPara(+slider.value);
-$$('[data-step]').forEach(b => b.onclick = () => { video.pause(); irPara(estado.frame + +b.dataset.step); });
-$('#btn-play').onclick = () => { if (video.paused) video.play(); else video.pause(); };
-video.onplay = () => $('#btn-play').textContent = '❚❚';
-video.onpause = () => $('#btn-play').textContent = '▶︎';
-video.ontimeupdate = () => { if (!video.paused) { const A = atual(); const t = A.trial.mot.time; irPara(Math.round(video.currentTime / (t[1] - t[0])), true); } };
-document.addEventListener('keydown', (e) => {
-  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) || $('#s-revisao').hidden) return;
-  if (e.key === 'ArrowRight') { irPara(estado.frame + (e.shiftKey ? 10 : 1)); e.preventDefault(); }
-  if (e.key === 'ArrowLeft') { irPara(estado.frame - (e.shiftKey ? 10 : 1)); e.preventDefault(); }
-});
-
-const EVS = { CI_D: ['CI D', 'calcR', 'triangle-down', 'd'], RD_D: ['RD D', 'toeR', 'circle-open', 'd'], CI_E: ['CI E', 'calcL', 'triangle-down', 'e'], RD_E: ['RD E', 'toeL', 'circle-open', 'e'] };
-function desenharLinha() {
-  const A = atual(); if (!A) return;
-  const t = Array.from(A.trial.mot.time), s = A.det.sinais;
-  const cor = { d: css('--d'), e: css('--e') };
-  const sinais = A.det.metodoId === 'vertical'
-    ? { calcR: A.trial.trc.markers.r_calc_study.y, calcL: A.trial.trc.markers.L_calc_study.y, toeR: A.trial.trc.markers.r_toe_study.y, toeL: A.trial.trc.markers.L_toe_study.y }
-    : s;
-  const tr = [
-    { x: t, y: Array.from(sinais.calcR), name: 'Calcâneo D', line: { color: cor.d, width: 1.5 } },
-    { x: t, y: Array.from(sinais.toeR), name: 'Dedos D', line: { color: cor.d, width: 1, dash: 'dot' } },
-    { x: t, y: Array.from(sinais.calcL), name: 'Calcâneo E', line: { color: cor.e, width: 1.5 } },
-    { x: t, y: Array.from(sinais.toeL), name: 'Dedos E', line: { color: cor.e, width: 1, dash: 'dot' } },
-  ];
-  for (const [k, [nome, sig, simb, l]] of Object.entries(EVS)) {
-    const idx = A.eventos[k];
-    tr.push({ x: idx.map(i => t[i]), y: idx.map(i => sinais[sig][i]), name: nome, mode: 'markers', marker: { symbol: simb, size: 10, color: cor[l], line: { width: 2, color: cor[l] } }, customdata: idx, hovertemplate: nome + ' %{x:.2f} s<extra></extra>' });
+function emApoio(A, i) {
+  const r = {};
+  for (const l of ['D', 'E']) {
+    const ci = A.eventos['CI_' + l], rd = A.eventos['RD_' + l];
+    const ult = [...ci].reverse().find(x => x <= i);
+    r[l] = ult != null && !rd.some(x => x > ult && x <= i);
   }
-  const yt = A.det.metodoId === 'vertical' ? 'altura (m)' : 'posição à frente do sacro (m)';
-  Plotly.react('plot-linha', tr, layoutBase({
-    margin: { l: 50, r: 10, t: 10, b: 40 }, showlegend: true, legend: { orientation: 'h', y: 1.12, font: { size: 11 } },
-    xaxis: { title: 'tempo (s)', rangeslider: { visible: true, thickness: 0.08 }, range: [Math.max(0, t[estado.frame] - 3), Math.max(0, t[estado.frame] - 3) + 6] },
-    yaxis: { title: yt, fixedrange: true }, shapes: formas(A), hovermode: 'closest',
-  }), { displaylogo: false, responsive: true, modeBarButtons: [['zoomIn2d', 'zoomOut2d', 'resetScale2d']] });
-  const el = $('#plot-linha');
-  el.removeAllListeners?.('plotly_click');
-  el.on('plotly_click', (ev) => { const p = ev.points[0]; if (!p) return; video.pause(); irPara(p.customdata != null ? p.customdata : p.pointIndex); });
+  return r;
 }
+function desenharEsq() {
+  const A = atual(); if (!A || $('#tela-esq').hidden) return;
+  desenharEsqueleto(canvas, A.trial.trc, estado.frame, $('#sel-vista').value, A.det.dir, emApoio(A, estado.frame), { d: css('--d'), e: css('--e'), fg: css('--fg'), linha: css('--line') });
+}
+new ResizeObserver(() => desenharEsq()).observe(canvas);
 
-function formas(A) {
-  const t = A.trial.mot.time, sh = [];
-  const [i0, i1] = A.cfg.janela || [0, t.length - 1];
-  if (i0 > 0) sh.push({ type: 'rect', xref: 'x', yref: 'paper', x0: t[0], x1: t[i0], y0: 0, y1: 1, fillcolor: 'rgba(128,128,128,.18)', line: { width: 0 } });
-  if (i1 < t.length - 1) sh.push({ type: 'rect', xref: 'x', yref: 'paper', x0: t[i1], x1: t[t.length - 1], y0: 0, y1: 1, fillcolor: 'rgba(128,128,128,.18)', line: { width: 0 } });
-  sh.push({ type: 'line', xref: 'x', yref: 'paper', x0: t[estado.frame], x1: t[estado.frame], y0: 0, y1: 1, line: { color: css('--fg'), width: 1.5 } });
-  return sh;
+// reprodução (com ou sem vídeo), em câmera lenta e com repetição do trecho visível
+$('#sel-rate').onchange = (e) => { video.playbackRate = +e.target.value; };
+$('#btn-play').onclick = () => estado.tocando ? pausar() : tocar();
+let raf = null, acum = 0, ultimoT = 0;
+function tocar() {
+  const A = atual(); if (!A) return;
+  const t = A.trial.mot.time, dt = t[1] - t[0];
+  estado.tocando = true; $('#btn-play').textContent = '❚❚';
+  const [v0, v1] = tl.visivel();
+  if ($('#chk-loop').checked && (estado.frame < v0 || estado.frame >= v1)) { estado.frame = v0; if (video.src) video.currentTime = t[v0]; }
+  if (video.src) { video.playbackRate = +$('#sel-rate').value; video.currentTime = t[estado.frame]; video.play().catch(() => {}); }
+  acum = estado.frame; ultimoT = performance.now();
+  const passo = (agora) => {
+    if (!estado.tocando) return;
+    let f;
+    if (video.src) f = Math.round(video.currentTime / dt);
+    else { acum += ((agora - ultimoT) / 1000) * (+$('#sel-rate').value) / dt; ultimoT = agora; f = Math.floor(acum); }
+    const [a, b] = tl.visivel();
+    if ($('#chk-loop').checked && f >= b) { f = a; acum = a; if (video.src) video.currentTime = t[a]; }
+    if (f >= t.length - 1) { estado.frame = t.length - 1; pausar(); return; }
+    if (f !== estado.frame) {
+      estado.frame = f;
+      $('#tempo').textContent = `${fmt(t[f], 2)} s · quadro ${f}`;
+      tl.setFrame(f); desenharEsq();
+    }
+    raf = requestAnimationFrame(passo);
+  };
+  raf = requestAnimationFrame(passo);
 }
-let cursorPend = false;
-function moverCursor() {
-  if (cursorPend) return; cursorPend = true;
-  requestAnimationFrame(() => {
-    cursorPend = false; const A = atual(); const el = $('#plot-linha'); if (!A || !el.layout) return;
-    const t = A.trial.mot.time, x = t[estado.frame];
-    const upd = { shapes: formas(A) };
-    const r = el.layout.xaxis.range;
-    if (r && (x < r[0] || x > r[1])) { const w = r[1] - r[0]; upd['xaxis.range'] = [x - w / 2, x + w / 2]; }
-    Plotly.relayout(el, upd);
-  });
+function pausar() {
+  if (!estado.tocando) return;
+  estado.tocando = false; $('#btn-play').textContent = '▶︎';
+  cancelAnimationFrame(raf); video.pause();
+  irPara(estado.frame);
 }
+$$('[data-step]').forEach(b => b.onclick = () => { pausar(); tl.limparSel(); irPara(estado.frame + +b.dataset.step); });
 
-$$('[data-ev]').forEach(b => b.onclick = () => {
-  const A = atual(), k = b.dataset.ev, f = estado.frame;
+function marcar(k) {
+  const A = atual(); if (!A) return; pausar();
+  const f = estado.frame;
   if (!A.eventos[k].includes(f)) { A.eventos[k].push(f); A.eventos[k].sort((a, c) => a - c); }
-  A.cfg.excluidos = null; desenharLinha(); recalcular();
+  tl.selecionar(k, f); A.cfg.excluidos = null; desenharSinal(); recalcular();
+}
+$$('[data-ev]').forEach(b => b.onclick = () => marcar(b.dataset.ev));
+$('#btn-remover').onclick = () => { if (!tl.apagarSel()) $('#video-status').textContent = 'Clique num evento na linha do tempo para selecioná-lo.'; };
+$('#btn-tudo').onclick = () => { const A = atual(); A.cfg.janela = null; A.janelaAuto = false; A.cfg.excluidos = null; infoTrial(A); tl.redesenhar(); recalcular(); };
+$('#btn-estavel').onclick = () => { const A = atual(); A.cfg.janela = trechoEstavel(A.eventos, A.trial.mot.time); A.janelaAuto = true; A.cfg.excluidos = null; infoTrial(A); tl.redesenhar(); recalcular(); };
+$('#btn-redetectar').onclick = redetectar;
+
+document.addEventListener('keydown', (e) => {
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) || $('#s-revisao').hidden || e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key;
+  if (k === 'ArrowRight' || k === 'ArrowLeft') {
+    const d = (k === 'ArrowRight' ? 1 : -1) * (e.shiftKey ? 5 : 1);
+    if (!tl.moverSel(d)) { pausar(); irPara(estado.frame + d); }
+    e.preventDefault();
+  } else if (k === '.' || k === ',') { pausar(); tl.limparSel(); irPara(estado.frame + (k === '.' ? 1 : -1)); }
+  else if (k === ' ') { estado.tocando ? pausar() : tocar(); e.preventDefault(); }
+  else if (k === 'Delete' || k === 'Backspace') { if (tl.apagarSel()) e.preventDefault(); }
+  else if (k === 'Escape') tl.limparSel();
+  else { const m = { q: 'CI_D', w: 'RD_D', o: 'CI_E', p: 'RD_E' }[k.toLowerCase()]; if (m) { marcar(m); e.preventDefault(); } }
 });
-$('#btn-remover').onclick = () => {
-  const A = atual(), f = estado.frame; let best = null;
-  for (const k in A.eventos) for (const i of A.eventos[k]) if (!best || Math.abs(i - f) < Math.abs(best[1] - f)) best = [k, i];
-  if (!best || Math.abs(best[1] - f) > A.det.fs * 0.3) { status('#video-status', 'Nenhum evento perto deste quadro.'); return; }
-  A.eventos[best[0]] = A.eventos[best[0]].filter(i => i !== best[1]);
-  A.cfg.excluidos = null; desenharLinha(); recalcular();
-};
-$('#btn-ini').onclick = () => { const A = atual(); const n = A.trial.mot.time.length - 1; const j = A.cfg.janela || [0, n]; A.cfg.janela = [estado.frame, Math.max(estado.frame + 1, j[1])]; A.janelaAuto = false; A.cfg.excluidos = null; preencherForm(A); moverCursor(); recalcular(); };
-$('#btn-fim').onclick = () => { const A = atual(); const n = A.trial.mot.time.length - 1; const j = A.cfg.janela || [0, n]; A.cfg.janela = [Math.min(j[0], estado.frame - 1), estado.frame]; A.janelaAuto = false; A.cfg.excluidos = null; preencherForm(A); moverCursor(); recalcular(); };
-$('#btn-tudo').onclick = () => { const A = atual(); A.cfg.janela = null; A.janelaAuto = false; A.cfg.excluidos = null; preencherForm(A); moverCursor(); recalcular(); };
-$('#btn-estavel').onclick = () => { const A = atual(); A.cfg.janela = trechoEstavel(A.eventos, A.trial.mot.time); A.janelaAuto = true; A.cfg.excluidos = null; preencherForm(A); moverCursor(); recalcular(); };
-$('#btn-redetectar').onclick = () => { const A = atual(); detectar(A); preencherForm(A); desenharLinha(); recalcular(); };
+
+function desenharSinal() {
+  const A = atual(); if (!A || !$('.sinal').open) return;
+  const t = Array.from(A.trial.mot.time), s = A.det.sinais, cor = { d: css('--d'), e: css('--e') };
+  const tr = [
+    { x: t, y: Array.from(s.calcR), name: 'Calcâneo D', line: { color: cor.d, width: 1.5 } },
+    { x: t, y: Array.from(s.toeR), name: 'Dedos D', line: { color: cor.d, width: 1, dash: 'dot' } },
+    { x: t, y: Array.from(s.calcL), name: 'Calcâneo E', line: { color: cor.e, width: 1.5 } },
+    { x: t, y: Array.from(s.toeL), name: 'Dedos E', line: { color: cor.e, width: 1, dash: 'dot' } },
+  ];
+  for (const [k, nome, sig, simb, l] of [['CI_D', 'CI D', 'calcR', 'triangle-down', 'd'], ['RD_D', 'RD D', 'toeR', 'square', 'd'], ['CI_E', 'CI E', 'calcL', 'triangle-down', 'e'], ['RD_E', 'RD E', 'toeL', 'square', 'e']])
+    tr.push({ x: A.eventos[k].map(i => t[i]), y: A.eventos[k].map(i => s[sig][i]), name: nome, mode: 'markers', marker: { symbol: simb, size: 8, color: cor[l] } });
+  Plotly.react('plot-linha', tr, layoutBase({ margin: { l: 50, r: 10, t: 10, b: 36 }, legend: { orientation: 'h', y: 1.15, font: { size: 11 } }, xaxis: { title: 'tempo (s)' }, yaxis: { title: 'à frente do sacro (m)' } }), { displaylogo: false, responsive: true });
+}
+$('.sinal').addEventListener('toggle', desenharSinal);
 
 // ---------------- 4. resultados ----------------
 let recalcTimer = null;
-function recalcular() { clearTimeout(recalcTimer); recalcTimer = setTimeout(recalcularJa, 60); }
+function recalcular() { clearTimeout(recalcTimer); recalcTimer = setTimeout(recalcularJa, 80); }
 function recalcularJa() {
   const A = atual(); if (!A) return;
   const ativ = A.cfg.atividade || A.det.atividade;
-  if (A.cfg.ambiente === 'esteira' && !A.cfg.velEsteira) {
-    $('#s-resultados').hidden = false;
-    $('#cards').innerHTML = `<div class="alerta" style="grid-column:1/-1">Informe a <b>velocidade da esteira</b> (passo 2) para calcular velocidade e comprimentos. Os tempos e os ângulos já aparecem abaixo.</div>`;
-  }
   A.res = analisar(A.trial, A.eventos, { ...A.cfg, atividade: ativ });
   A.res.atividade = ativ; A.res.metodo = A.det.metodo;
   if (!A.cfg.excluidos) A.cfg.excluidos = new Set(A.res.passadas.filter(p => p.excluida).map(p => p.id));
@@ -237,6 +298,7 @@ function recalcularJa() {
   montarSelTrial(); montarComparar();
   $('#s-comparar').hidden = false; $('#s-laudo').hidden = false;
 }
+function redesenharResultados() { const A = atual(); if (A?.res) { mostrarResultados(A); desenharComparacao(); } }
 
 function mostrarResultados(A) {
   const R = A.res, T = R.tab, sem = A.cfg.ambiente === 'esteira' && !A.cfg.velEsteira;
@@ -245,19 +307,19 @@ function mostrarResultados(A) {
   const nD = ok.filter(p => p.lado === 'D').length, nE = ok.filter(p => p.lado === 'E').length;
   const kpi = (rot, v, u, r = '') => `<div class="kpi"><div class="u">${rot}</div><div class="v">${v}</div><div class="r">${u}${r ? ' · ' + r : ''}</div></div>`;
   const si = (x) => x == null ? '' : `simetria ${x > 0 ? '+' : ''}${fmt(x, 1)}%`;
-  if (!sem) $('#cards').innerHTML = '';
-  $('#cards').innerHTML += [
+  $('#cards').innerHTML = (sem ? `<div class="alerta" style="grid-column:1/-1">Informe a <b>velocidade da esteira</b> (passo 2) para calcular velocidade e comprimentos.</div>` : '') + [
     sem ? '' : kpi('Velocidade', fmt(T.velocidade.geral.m, 2), 'm/s', A.cfg.ambiente === 'esteira' ? `esteira ${fmt(A.cfg.velEsteira, 1)} km/h` : ''),
     kpi('Cadência', fmt(T.cadencia.geral.m, 0), 'passos/min'),
     sem ? '' : kpi('Passada', fmt(T.passada.geral.m, 2), 'm', `CV ${fmt(T.passada.geral.cv, 1)}%`),
-    kpi('Apoio D / E', `${fmt(T.apoioPct.D.m, 0)} / ${fmt(T.apoioPct.E.m, 0)}`, '% do ciclo', si(T.apoioPct.si)),
+    R.atividade === 'corrida'
+      ? kpi('Contato D / E', `${fmt(T.apoio.D.m * 1000, 0)} / ${fmt(T.apoio.E.m * 1000, 0)}`, 'ms', si(T.apoio.si))
+      : kpi('Apoio D / E', `${fmt(T.apoioPct.D.m, 0)} / ${fmt(T.apoioPct.E.m, 0)}`, '% do ciclo', si(T.apoioPct.si)),
     R.atividade === 'corrida' ? kpi('Tempo de voo', fmt(T.voo?.geral.m * 1000, 0), 'ms') : kpi('Duplo apoio', fmt(T.duplaPct?.geral.m, 0), '% do ciclo'),
     kpi('Passadas usadas', `${nD} D · ${nE} E`, R.atividade, `CV tempo ${fmt(T.duracao.geral.cv, 1)}%`),
   ].join('');
-  // tabela espaço-temporal
   let h = '<tr><th>Variável</th><th class="d">Direito</th><th class="e">Esquerdo</th><th>Simetria</th><th>CV</th></tr>';
   for (const [k, rot, u, d] of VARS) {
-    const v = T[k]; if (!v) continue;
+    const v = T[k]; if (!v || !vis.vars.includes(k)) continue;
     if (sem && ['velocidade', 'passada', 'passo'].includes(k)) continue;
     if (k === 'velocidade' || k === 'cadencia') { h += `<tr><td>${rot} <span class="dica">${u}</span></td><td colspan="2" style="text-align:center">${fmt(v.geral.m, d)}</td><td></td><td></td></tr>`; continue; }
     const mdp = (x) => x.m == null ? '–' : `${fmt(x.m, d)}${x.dp != null ? ' <span class="dica">± ' + fmt(x.dp, d) + '</span>' : ''}`;
@@ -265,28 +327,30 @@ function mostrarResultados(A) {
     h += `<tr><td>${rot} <span class="dica">${u}</span></td><td>${mdp(v.D)}</td><td>${mdp(v.E)}</td><td>${a}</td><td>${fmt(v.geral.cv, 1)}%</td></tr>`;
   }
   $('#tab-et').innerHTML = h;
+  $('#bloco-pontos').hidden = !vis.pontos;
   $('#tab-pontos').innerHTML = '<tr><th>Ponto</th><th class="d">D</th><th class="e">E</th><th>D − E</th></tr>' +
-    R.pontos.map(p => `<tr><td>${p.rotulo}</td><td>${fmt(p.D, 0)}</td><td>${fmt(p.E, 0)}</td><td>${p.D != null && p.E != null ? fmt(p.D - p.E, 0) : '–'}</td></tr>`).join('');
+    R.pontos.filter(p => vis.curvas.includes(p.curva)).map(p => `<tr><td>${p.rotulo}</td><td>${fmt(p.D, 0)}</td><td>${fmt(p.E, 0)}</td><td>${p.D != null && p.E != null ? fmt(p.D - p.E, 0) : '–'}</td></tr>`).join('');
   desenharCurvas(A);
-  // passadas
   $('#n-passadas').textContent = `${ok.length} de ${R.passadas.length}`;
   $('#lista-passadas').innerHTML = R.passadas.map(p => `<label class="${p.suspeita ? 'susp' : ''}" title="${p.suspeita ? 'duração fora do padrão ou sem RD' : ''}"><input type="checkbox" data-p="${p.id}" ${p.excluida ? '' : 'checked'}> ${p.lado}${p.n} · ${fmt(p.t0, 1)} s</label>`).join('');
   $$('#lista-passadas input').forEach(c => c.onchange = () => { if (c.checked) A.cfg.excluidos.delete(c.dataset.p); else A.cfg.excluidos.add(c.dataset.p); recalcularJa(); });
 }
 
 function layoutBase(extra) {
-  return Object.assign({ paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: css('--fg'), size: 11, family: '-apple-system,system-ui,sans-serif' },
-    xaxis: { gridcolor: css('--line'), zerolinecolor: css('--line') }, yaxis: { gridcolor: css('--line'), zerolinecolor: css('--line') } }, extra,
-    { xaxis: Object.assign({ gridcolor: css('--line'), zerolinecolor: css('--line') }, extra.xaxis), yaxis: Object.assign({ gridcolor: css('--line'), zerolinecolor: css('--line') }, extra.yaxis) });
+  const eixo = { gridcolor: css('--line'), zerolinecolor: css('--mut'), linecolor: css('--line') };
+  return Object.assign({ paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: css('--fg'), size: 11, family: '-apple-system,system-ui,sans-serif' } }, extra,
+    { xaxis: Object.assign({}, eixo, extra.xaxis), yaxis: Object.assign({}, eixo, extra.yaxis) });
 }
 
 function desenharCurvas(A) {
   const R = A.res, cont = $('#curvas'), cores = { D: css('--d'), E: css('--e') };
-  if (cont.children.length !== ANGULOS.length) cont.innerHTML = ANGULOS.map(([c]) => `<div class="curva" id="cv-${c}"></div>`).join('');
-  for (const [c, rot] of ANGULOS) {
+  const lista = ANGULOS.filter(a => vis.curvas.includes(a[0]) && R.curvas[a[0]] && Object.keys(R.curvas[a[0]]).length);
+  cont.innerHTML = lista.map(([c]) => `<div class="curva" id="cv-${c}"></div>`).join('');
+  for (const [c, rot] of lista) {
     const shapes = ['D', 'E'].filter(l => R.rdMedio[l] != null).map(l => ({ type: 'line', x0: R.rdMedio[l], x1: R.rdMedio[l], yref: 'paper', y0: 0, y1: 1, line: { color: cores[l], dash: 'dash', width: 1 } }));
-    Plotly.react('cv-' + c, tracosCurva(R.curvas, c, cores), layoutBase({ title: { text: rot, font: { size: 12 }, x: 0.02 }, margin: { l: 40, r: 8, t: 30, b: 32 }, showlegend: false, shapes,
-      xaxis: { title: { text: '% do ciclo', font: { size: 10 } }, range: [0, 100] }, yaxis: { title: { text: 'graus', font: { size: 10 } } } }), { displayModeBar: false, responsive: true });
+    Plotly.newPlot('cv-' + c, tracosCurva(R.curvas, c, cores, vis.dp), layoutBase({ title: { text: rot, font: { size: 12 }, x: 0.02 }, margin: { l: vis.setas ? 74 : 44, r: 8, t: 30, b: 34 }, showlegend: false, shapes,
+      annotations: vis.setas ? setasEixo(c, css('--mut'), 10, -0.11) : [],
+      xaxis: { title: { text: '% do ciclo', font: { size: 10 } }, range: [0, 100] }, yaxis: { ticksuffix: '°' } }), { displayModeBar: false, responsive: true });
   }
 }
 
@@ -298,27 +362,28 @@ function montarComparar() {
   $$('#comp-lista input').forEach(c => c.onchange = () => { c.checked ? comparados.add(c.dataset.c) : comparados.delete(c.dataset.c); desenharComparacao(); });
   desenharComparacao();
 }
-export function selecionadosComparacao() { return [...comparados].map(k => estado.analises.get(k)).filter(A => A?.res); }
+function selecionadosComparacao() { return [...comparados].map(k => estado.analises.get(k)).filter(A => A?.res); }
 function desenharComparacao() {
   const L = selecionadosComparacao(), out = $('#comp-saida');
   if (L.length < 2) { out.innerHTML = ''; return; }
-  const vars = [['velocidade', 'Velocidade (m/s)', 2], ['cadencia', 'Cadência (passos/min)', 0], ['passada', 'Passada (m)', 2], ['largura', 'Largura do passo (cm)', 1], ['apoioPct', 'Apoio (%)', 1], ['duplaPct', 'Duplo apoio (%)', 1], ['voo', 'Tempo de voo (s)', 3]];
-  let h = `<table class="tab"><tr><th>Variável</th>${L.map((A, i) => `<th style="color:${PALETA[i % 6]}">${esc(A.rotulo)}</th>`).join('')}</tr>`;
+  const vars = [['velocidade', 'Velocidade (m/s)', 2], ['cadencia', 'Cadência (passos/min)', 0], ['passada', 'Passada (m)', 2], ['largura', 'Largura do passo (cm)', 1], ['apoio', 'Tempo de apoio (s)', 3], ['apoioPct', 'Apoio (%)', 1], ['duplaPct', 'Duplo apoio (%)', 1], ['voo', 'Tempo de voo (s)', 3]];
+  let h = `<table class="tab"><tr><th>Variável</th>${L.map((A, i) => `<th style="color:${PALETA[i % PALETA.length]}">${esc(A.rotulo)}</th>`).join('')}</tr>`;
   for (const [k, rot, d] of vars) {
+    if (!vis.vars.includes(k)) continue;
     if (!L.some(A => A.res.tab[k]?.geral?.m != null)) continue;
     h += `<tr><td>${rot}</td>${L.map(A => `<td>${fmt(A.res.tab[k]?.geral?.m, d)}</td>`).join('')}</tr>`;
   }
   h += `<tr><td>Simetria do apoio (%)</td>${L.map(A => `<td>${fmt(A.res.tab.apoioPct?.si, 1)}</td>`).join('')}</tr>`;
-  for (const p of L[0].res.pontos.slice(0, 7)) {
-    const idx = L[0].res.pontos.indexOf(p);
+  L[0].res.pontos.forEach((p, idx) => {
+    if (!vis.curvas.includes(p.curva)) return;
     h += `<tr><td>${p.rotulo} (D / E)</td>${L.map(A => `<td>${fmt(A.res.pontos[idx].D, 0)} / ${fmt(A.res.pontos[idx].E, 0)}</td>`).join('')}</tr>`;
-  }
+  });
   out.innerHTML = h + '</table><p class="dica">Curvas: linha cheia = direito, tracejada = esquerdo.</p><div class="curvas" id="comp-curvas"></div>';
-  const cc = $('#comp-curvas');
-  cc.innerHTML = ANGULOS.slice(0, 6).map(([c]) => `<div class="curva" id="cc-${c}"></div>`).join('');
-  for (const [c, rot] of ANGULOS.slice(0, 6)) {
-    Plotly.newPlot('cc-' + c, tracosComparacao(L, c), layoutBase({ title: { text: rot, font: { size: 12 }, x: 0.02 }, margin: { l: 40, r: 8, t: 30, b: 32 }, showlegend: c === 'hip_flexion', legend: { orientation: 'h', y: -0.25, font: { size: 10 } },
-      xaxis: { range: [0, 100] }, yaxis: {} }), { displayModeBar: false, responsive: true });
+  const lista = ANGULOS.filter(a => vis.curvas.includes(a[0]));
+  $('#comp-curvas').innerHTML = lista.map(([c]) => `<div class="curva" id="cc-${c}"></div>`).join('');
+  for (const [c, rot] of lista) {
+    Plotly.newPlot('cc-' + c, tracosComparacao(L, c), layoutBase({ title: { text: rot, font: { size: 12 }, x: 0.02 }, margin: { l: vis.setas ? 74 : 44, r: 8, t: 30, b: 32 }, showlegend: c === lista[0][0], legend: { orientation: 'h', y: -0.25, font: { size: 10 } },
+      annotations: vis.setas ? setasEixo(c, css('--mut'), 10, -0.11) : [], xaxis: { range: [0, 100] }, yaxis: { ticksuffix: '°' } }), { displayModeBar: false, responsive: true });
   }
 }
 
@@ -327,7 +392,7 @@ $('#in-data').valueAsDate = new Date();
 $('#btn-pdf').onclick = async () => {
   const A = atual(); if (!A?.res) return;
   status('#laudo-status', 'Gerando PDF…');
-  try { await gerarPDF(A, dadosLaudo(), $('#chk-comp-laudo').checked ? selecionadosComparacao() : []); status('#laudo-status', 'PDF baixado.'); }
+  try { await gerarPDF(A, dadosLaudo(), $('#chk-comp-laudo').checked ? selecionadosComparacao() : [], vis); status('#laudo-status', 'PDF baixado.'); }
   catch (err) { console.error(err); status('#laudo-status', 'Erro ao gerar PDF: ' + err.message, true); }
 };
 $('#btn-xlsx').onclick = () => {
@@ -340,4 +405,3 @@ function dadosLaudo() { return { paciente: $('#in-paciente').value.trim(), data:
 // ---------------- util ----------------
 function status(sel, msg, erro = false) { const el = $(sel); el.textContent = msg; el.classList.toggle('erro', erro); }
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
-export { fmt };
