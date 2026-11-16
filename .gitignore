@@ -1,0 +1,8 @@
+.DS_Store
+*.zip
+*.mp4
+*.mov
+*.trc
+*.mot
+*.osim
+OpenCapData*/

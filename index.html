@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marcha OpenCap</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='6' r='3.5' fill='%231f5fd6'/%3E%3Cpath d='M16 10l-3 9 4 3-2 8M16 10l3 8-5 1M13 19l-5 4' stroke='%231f5fd6' stroke-width='2.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/app.css">
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-basic-dist-min@2.35.2/plotly-basic.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<header class="topo">
+  <div>
+    <h1>Marcha OpenCap</h1>
+    <p class="sub">Análise de marcha e corrida a partir dos dados do OpenCap · tudo roda neste computador, nada é enviado</p>
+  </div>
+  <nav class="passos">
+    <a href="#s-carregar">1 Dados</a><a href="#s-trial">2 Trial</a><a href="#s-revisao">3 Eventos</a><a href="#s-resultados">4 Resultados</a><a href="#s-comparar">5 Comparar</a><a href="#s-laudo">6 Laudo</a>
+  </nav>
+</header>
+
+<main>
+<section id="s-carregar" class="card">
+  <h2><span class="n">1</span> Carregar a sessão do OpenCap</h2>
+  <div id="drop" class="drop">
+    <p>Arraste aqui o <b>ZIP</b> baixado do OpenCap <b>ou a pasta</b> descompactada.</p>
+    <div class="linha">
+      <button id="btn-zip" class="prim">Escolher ZIP</button>
+      <button id="btn-pasta">Escolher pasta</button>
+    </div>
+    <p class="dica">Pode carregar várias sessões (ex.: antes e depois). ZIP muito grande? Use a pasta descompactada: não há limite de tamanho.</p>
+    <input id="in-zip" type="file" accept=".zip" multiple hidden>
+    <input id="in-pasta" type="file" webkitdirectory multiple hidden>
+  </div>
+  <p id="carregar-status" class="status"></p>
+  <ul id="lista-sessoes" class="sessoes"></ul>
+</section>
+
+<section id="s-trial" class="card" hidden>
+  <h2><span class="n">2</span> Trial e condições da coleta</h2>
+  <div class="grade-form">
+    <label>Trial<select id="sel-trial"></select></label>
+    <label>Rótulo (aparece no laudo)<input id="in-rotulo" placeholder="ex.: Pré · 4 km/h"></label>
+    <fieldset><legend>Local</legend>
+      <label class="radio"><input type="radio" name="amb" value="esteira" checked> Esteira</label>
+      <label class="radio"><input type="radio" name="amb" value="solo"> Solo</label>
+    </fieldset>
+    <label id="lbl-vel">Velocidade da esteira (km/h)<input id="in-vel" type="number" step="0.1" min="0" placeholder="obrigatório na esteira"></label>
+    <label>Atividade<select id="sel-ativ"><option value="">Automático</option><option value="marcha">Marcha</option><option value="corrida">Corrida</option></select></label>
+    <label>Detecção dos eventos<select id="sel-metodo"><option value="">Automático (marcha: Zeni · corrida: vel. vertical)</option><option value="zeni">Posição do pé em relação ao sacro (Zeni)</option><option value="vertical">Velocidade vertical do pé</option></select></label>
+  </div>
+  <p id="trial-info" class="status"></p>
+  <div id="alerta-qualidade" class="alerta" hidden></div>
+</section>
+
+<section id="s-revisao" class="card" hidden>
+  <h2><span class="n">3</span> Conferir os eventos no vídeo</h2>
+  <p class="dica">Os eventos foram detectados automaticamente. Confira no vídeo: CI = contato inicial, RD = retirada do pé (saída dos dedos). Clique no gráfico para ir àquele instante.</p>
+  <div class="revisao">
+    <div class="video-box">
+      <div class="linha"><label class="inline">Câmera <select id="sel-cam"></select></label><span id="video-status" class="status"></span></div>
+      <video id="video" muted playsinline preload="auto"></video>
+      <div class="linha controles">
+        <button data-step="-10">−10</button><button data-step="-1">−1</button>
+        <button id="btn-play">▶︎</button>
+        <button data-step="1">+1</button><button data-step="10">+10</button>
+        <span id="tempo" class="mono"></span>
+      </div>
+      <input id="slider" type="range" min="0" value="0" step="1">
+    </div>
+    <div class="eventos-box">
+      <div id="plot-linha" class="plot-linha"></div>
+      <div class="linha botoes-ev">
+        <span class="lado d">Direito</span><button data-ev="CI_D" class="ev d">+ CI</button><button data-ev="RD_D" class="ev d">+ RD</button>
+        <span class="lado e">Esquerdo</span><button data-ev="CI_E" class="ev e">+ CI</button><button data-ev="RD_E" class="ev e">+ RD</button>
+        <button id="btn-remover">Remover evento mais próximo</button>
+      </div>
+      <div class="linha">
+        <span class="dica">Trecho analisado:</span>
+        <button id="btn-ini">Começar aqui</button><button id="btn-fim">Terminar aqui</button><button id="btn-estavel">Trecho estável (auto)</button><button id="btn-tudo">Trial inteiro</button>
+        <button id="btn-redetectar" class="sec">Detectar de novo</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s-resultados" class="card" hidden>
+  <h2><span class="n">4</span> Resultados</h2>
+  <div id="cards" class="cards"></div>
+  <div class="duas">
+    <div>
+      <h3>Espaço-temporais</h3>
+      <table id="tab-et" class="tab"></table>
+      <p class="dica">Simetria = (D − E) / média(D, E) × 100. Positivo: maior à direita. CV = variabilidade entre passadas.</p>
+    </div>
+    <div>
+      <h3>Pontos-chave das curvas (graus)</h3>
+      <table id="tab-pontos" class="tab"></table>
+    </div>
+  </div>
+  <h3>Ângulos ao longo do ciclo <span class="dica">linha = média, faixa = ±1 DP, tracejado = retirada do pé</span></h3>
+  <div id="curvas" class="curvas"></div>
+  <details class="passadas">
+    <summary>Passadas usadas (<span id="n-passadas"></span>) · desmarque as que estiverem erradas</summary>
+    <div id="lista-passadas" class="lista-passadas"></div>
+  </details>
+</section>
+
+<section id="s-comparar" class="card" hidden>
+  <h2><span class="n">5</span> Comparar trials ou sessões</h2>
+  <p class="dica">Marque dois ou mais trials já analisados (ex.: antes × depois, ou condições diferentes).</p>
+  <div id="comp-lista" class="comp-lista"></div>
+  <div id="comp-saida"></div>
+</section>
+
+<section id="s-laudo" class="card" hidden>
+  <h2><span class="n">6</span> Laudo e dados</h2>
+  <div class="grade-form">
+    <label>Paciente<input id="in-paciente"></label>
+    <label>Data da avaliação<input id="in-data" type="date"></label>
+    <label>Avaliador(a)<input id="in-avaliador"></label>
+  </div>
+  <label class="bloco">Observações clínicas<textarea id="in-obs" rows="4"></textarea></label>
+  <label class="radio"><input type="checkbox" id="chk-comp-laudo" checked> Incluir a comparação no laudo (se houver)</label>
+  <div class="linha">
+    <button id="btn-pdf" class="prim">Baixar laudo (PDF)</button>
+    <button id="btn-xlsx">Baixar dados (Excel)</button>
+  </div>
+  <p id="laudo-status" class="status"></p>
+</section>
+</main>
+
+<footer class="rodape">
+  Estimativas a partir de vídeo (OpenCap). Use com julgamento clínico. Eventos detectados automaticamente (marcha: Zeni et al., 2008; corrida: velocidade vertical do pé, Leitch et al., 2011) e conferidos no vídeo.
+</footer>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
