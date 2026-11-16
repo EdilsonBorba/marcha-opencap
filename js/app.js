@@ -40,6 +40,7 @@ montarPainelVis();
   l.push(`<a href="${C.repositorio}" target="_blank" rel="noopener">repositório</a>`);
   if (C.lattes) l.push(`<a href="${C.lattes}" target="_blank" rel="noopener">Lattes</a>`);
   if (C.orcid) l.push(`<a href="${C.orcid}" target="_blank" rel="noopener">ORCID</a>`);
+  if (C.email) l.push(`<a href="mailto:${C.email}">${C.email}</a>`);
   $('#creditos').innerHTML = l.join(' · ');
 }
 

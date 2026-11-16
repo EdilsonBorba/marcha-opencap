@@ -13,7 +13,7 @@ async function imagem(tracos, titulo, shapes = [], legenda = false, setas = []) 
   document.body.appendChild(div);
   await Plotly.newPlot(div, tracos, {
     width: 520, height: 300, paper_bgcolor: '#fff', plot_bgcolor: '#fff', font: { size: 12, color: '#222' },
-    title: { text: titulo, font: { size: 14 }, x: 0.02 }, margin: { l: setas.length ? 78 : 48, r: 10, t: 34, b: legenda ? 60 : 36 }, showlegend: legenda, annotations: setas,
+    title: { text: titulo, font: { size: 14 }, x: 0.02 }, margin: { l: setas.length ? 92 : 48, r: 10, t: 34, b: legenda ? 60 : 36 }, showlegend: legenda, annotations: setas,
     legend: { orientation: 'h', y: -0.22, font: { size: 10 } }, shapes,
     xaxis: { range: [0, 100], title: { text: '% do ciclo', font: { size: 11 } }, gridcolor: '#e6e6e6' }, yaxis: { title: { text: setas.length ? '' : 'graus', font: { size: 11 } }, ticksuffix: '°', gridcolor: '#e6e6e6', zerolinecolor: '#999' },
   }, { staticPlot: true });
@@ -36,7 +36,7 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
     pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6.5); pdf.setTextColor('#777');
     const linhas = [
       ...pdf.splitTextToSize('Valores estimados a partir de vídeo (OpenCap); interpretar com julgamento clínico. TD = touchdown (pé toca o chão); TO = toe-off (dedos deixam o chão). Eventos: ' + R.metodo + '.', W - 2 * M - 16),
-      `Ferramenta desenvolvida por ${CREDITOS.autor}${CREDITOS.doi ? ' · DOI ' + CREDITOS.doi : ''} · ${CREDITOS.repositorio.replace('https://', '')}`,
+      `Ferramenta desenvolvida por ${CREDITOS.autor}${CREDITOS.doi ? ' · DOI ' + CREDITOS.doi : ''} · ${CREDITOS.repositorio.replace('https://', '')} · ORCID ${CREDITOS.orcid.replace('https://orcid.org/', '')}`,
     ];
     pdf.text(linhas, M, 289 - (linhas.length - 1) * 3);
     txt(`Página ${pdf.getNumberOfPages()}`, W - M, 288, { s: 7, c: '#777', al: 'right' });
