@@ -77,6 +77,12 @@
     <label>Atividade<select id="sel-ativ"><option value="">Automático</option><option value="marcha">Marcha</option><option value="corrida">Corrida</option></select></label>
     <label>Detecção dos eventos<select id="sel-metodo"><option value="">Automático (marcha: Zeni · corrida: Patoz)</option><option value="zeni">Posição do pé em relação ao sacro (Zeni et al., 2008)</option><option value="patoz">Aceleração e altura do calcâneo e dedos (Patoz et al., 2021)</option><option value="vertical">Velocidade vertical do pé (Leitch et al., 2011)</option></select></label>
   </div>
+  <fieldset class="participante"><legend>Participante <span class="dica">(vem do OpenCap; corrija se algo foi registrado errado)</span></legend>
+    <label>Sexo<select id="pt-sexo"><option value="">não informado</option><option value="F">Feminino</option><option value="M">Masculino</option></select></label>
+    <label>Idade (anos)<input id="pt-idade" type="number" min="0" max="120" step="1"></label>
+    <label>Altura (m)<input id="pt-altura" type="number" min="0.5" max="2.5" step="0.01"></label>
+    <label>Massa (kg)<input id="pt-massa" type="number" min="10" max="300" step="0.1"></label>
+  </fieldset>
   <p id="trial-info" class="status"></p>
   <div id="alerta-qualidade" class="alerta" hidden></div>
 </section>
@@ -139,6 +145,7 @@
         <label class="radio"><input type="checkbox" id="vis-pontos" checked> Pontos-chave das curvas</label>
         <label class="radio"><input type="checkbox" id="vis-setas" checked> Setas de sentido no eixo</label>
         <label class="radio"><input type="checkbox" id="vis-dp" checked> Faixa de ±1 DP</label>
+        <label class="radio"><input type="checkbox" id="vis-normal"> Faixa de normalidade (literatura)</label>
       </div>
     </div>
   </details>
@@ -155,6 +162,7 @@
     </div>
   </div>
   <h3>Curvas ao longo do ciclo <span class="dica">linha = média, faixa = ±1 DP, tracejado = TO (dedos deixam o chão); centro de massa em cm, em relação à média da passada</span></h3>
+  <p id="nota-normal" class="dica"></p>
   <div id="curvas" class="curvas"></div>
   <details class="passadas">
     <summary>Passadas usadas (<span id="n-passadas"></span>) · desmarque as que estiverem erradas</summary>

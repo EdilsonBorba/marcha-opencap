@@ -97,7 +97,8 @@ async function montarSessao(nome, files) {
 function lerYaml(txt) {
   const num = (k) => { const m = txt.match(new RegExp('^' + k + ':\\s*([0-9.]+)', 'm')); return m ? parseFloat(m[1]) : null; };
   const str = (k) => { const m = txt.match(new RegExp('^' + k + ':\\s*(\\S+)', 'm')); return m ? m[1] : null; };
-  return { altura: num('height_m'), massa: num('mass_kg'), modelo: str('openSimModel') };
+  const sx = (str('gender_mf') || str('sex') || '').toLowerCase();
+  return { altura: num('height_m'), massa: num('mass_kg'), idade: num('age'), sexo: sx.startsWith('m') ? 'M' : sx.startsWith('f') ? 'F' : '', modelo: str('openSimModel') };
 }
 
 export async function carregarTrial(sessao, nome) {

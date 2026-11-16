@@ -80,6 +80,7 @@ video{width:100%;max-height:520px;background:#000;border-radius:8px}
 .comp-lista{display:flex;flex-wrap:wrap;gap:8px 16px;margin-bottom:10px}
 .creditos{margin-top:8px;color:var(--fg);font-size:.82rem}
 .creditos a{color:var(--acc)}
+.participante{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 14px;margin-top:12px;padding:8px 12px 10px}
 .rodape{max-width:1280px;margin:0 auto;padding:4px 20px 28px;color:var(--mut);font-size:.8rem}
 @media (max-width:600px){main{padding:8px} .card{padding:14px} .topo{padding:10px 16px}}
 

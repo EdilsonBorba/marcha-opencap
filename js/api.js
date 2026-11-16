@@ -58,7 +58,7 @@ export async function montarSessaoAPI(s, trialsEscolhidos, aoProgresso = () => {
   const trials = [...files.keys()].filter(p => /^OpenSimData\/Kinematics\//.test(p)).map(p => p.split('/').pop().replace(/\.mot$/, ''));
   let meta = {};
   if (files.has('sessionMetadata.yaml')) {
-    try { const y = await files.get('sessionMetadata.yaml').text(); const n = (c) => { const m = y.match(new RegExp('^' + c + ':\\s*([0-9.]+)', 'm')); return m ? +m[1] : null; }; meta = { altura: n('height_m'), massa: n('mass_kg') }; } catch (e) { diag.push({ metadados: 'falhou: ' + e.message }); }
+    try { const y = await files.get('sessionMetadata.yaml').text(); const n = (c) => { const m = y.match(new RegExp('^' + c + ':\\s*([0-9.]+)', 'm')); return m ? +m[1] : null; }; const sx = ((y.match(/^gender_mf:\s*(\S+)/m) || [])[1] || '').toLowerCase(); meta = { altura: n('height_m'), massa: n('mass_kg'), idade: n('age'), sexo: sx.startsWith('m') ? 'M' : sx.startsWith('f') ? 'F' : '' }; } catch (e) { diag.push({ metadados: 'falhou: ' + e.message }); }
   }
   return { id: crypto.randomUUID(), nome: s.name || ('Sessão ' + String(s.id).slice(0, 8)), files, trials, meta, cams: [...cams].sort(), diag };
 }

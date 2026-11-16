@@ -98,6 +98,7 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
   pdf.addPage(); y = M;
   txt('Curvas ao longo do ciclo', M, y + 4, { s: 13, b: true });
   txt('Linha = média; faixa = ±1 DP; tracejado = TO (dedos deixam o chão).  Vermelho = direito; azul = esquerdo.', M, y + 10, { s: 8, c: '#666' });
+  if (vis.faixa) { txt(`Faixa cinza = normalidade (média ± 1 DP), adultos saudáveis${vis.faixa.grupo ? ', ' + vis.faixa.grupo : ''}, ${f(vis.faixa.velRef, 1)} m/s, n = ${vis.faixa.n}; ${vis.faixa.fonte}. Dados de laboratório com marcadores.`, M, y + 14, { s: 7.5, c: '#666' }); y += 4; }
   y += 15;
   const w = (W - 2 * M - 6) / 2, h = w * 300 / 520;
   for (let i = 0; i < ANG.length; i++) {
@@ -105,7 +106,7 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
     if (i > 0 && i % 8 === 0) { rodape(); pdf.addPage(); y = M; }
     const k = i % 8;
     const shapes = ['D', 'E'].filter(l => R.rdMedio[l] != null).map(l => ({ type: 'line', x0: R.rdMedio[l], x1: R.rdMedio[l], yref: 'paper', y0: 0, y1: 1, line: { color: CORES[l], dash: 'dash', width: 1 } }));
-    const img = await imagem(tracosCurva(R.curvas, c, CORES, vis.dp), rot, shapes, false, vis.setas ? setasEixo(c, '#555', 11, 56) : [], unidade(c));
+    const img = await imagem(tracosCurva(R.curvas, c, CORES, vis.dp, vis.faixa), rot, shapes, false, vis.setas ? setasEixo(c, '#555', 11, 56) : [], unidade(c));
     pdf.addImage(img, 'JPEG', M + (k % 2) * (w + 6), y + Math.floor(k / 2) * (h + 3), w, h);
   }
   rodape();

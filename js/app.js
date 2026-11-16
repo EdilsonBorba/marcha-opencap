@@ -8,6 +8,7 @@ import { criarTimeline } from './timeline.js';
 import { desenharEsqueleto } from './skeleton.js';
 import * as api from './api.js';
 import { CREDITOS } from './creditos.js';
+import { carregarNormas, escolherFaixa } from './normas.js';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -18,7 +19,7 @@ const estado = { sessoes: [], analises: new Map(), atual: null, frame: 0, videoU
 window.__estado = estado;
 
 // ---------------- preferências de visualização ----------------
-const VIS_PADRAO = { curvas: PREDEF.marcha.curvas, vars: VARS.map(v => v[0]), pontos: true, setas: true, dp: true };
+const VIS_PADRAO = { curvas: PREDEF.marcha.curvas, vars: VARS.map(v => v[0]), pontos: true, setas: true, dp: true, normal: false };
 let vis = carregarVis();
 function carregarVis() { try { return { ...VIS_PADRAO, ...JSON.parse(localStorage.getItem('marcha-opencap:vis') || '{}') }; } catch { return { ...VIS_PADRAO }; } }
 function salvarVis() { try { localStorage.setItem('marcha-opencap:vis', JSON.stringify(vis)); } catch {} }
@@ -28,10 +29,10 @@ function montarPainelVis() {
   $('#vis-vars').innerHTML = VARS.map(([k, t]) => `<label class="radio"><input type="checkbox" data-vv="${k}" ${vis.vars.includes(k) ? 'checked' : ''}> ${t}</label>`).join('');
   $$('[data-vc]').forEach(c => c.onchange = () => { vis.curvas = $$('[data-vc]').filter(x => x.checked).map(x => x.dataset.vc); salvarVis(); redesenharResultados(); });
   $$('[data-vv]').forEach(c => c.onchange = () => { vis.vars = $$('[data-vv]').filter(x => x.checked).map(x => x.dataset.vv); salvarVis(); redesenharResultados(); });
-  $('#vis-pontos').checked = vis.pontos; $('#vis-setas').checked = vis.setas; $('#vis-dp').checked = vis.dp;
+  $('#vis-pontos').checked = vis.pontos; $('#vis-setas').checked = vis.setas; $('#vis-dp').checked = vis.dp; $('#vis-normal').checked = vis.normal;
 }
 $$('[data-pre]').forEach(b => b.onclick = () => { vis.curvas = [...PREDEF[b.dataset.pre].curvas]; salvarVis(); montarPainelVis(); redesenharResultados(); });
-for (const k of ['pontos', 'setas', 'dp']) $('#vis-' + k).onchange = (e) => { vis[k] = e.target.checked; salvarVis(); redesenharResultados(); };
+for (const k of ['pontos', 'setas', 'dp', 'normal']) $('#vis-' + k).onchange = (e) => { vis[k] = e.target.checked; salvarVis(); redesenharResultados(); };
 montarPainelVis();
 {
   const C = CREDITOS, l = [];
@@ -188,6 +189,7 @@ async function prepararAnalise(k) {
 }
 function aplicarSalvo(A, s) {
   A.rotulo = s.rotulo || A.rotulo;
+  if (s.participante) A.sessao.meta = { ...(A.sessao.meta || {}), ...s.participante };
   A.cfg = { ...A.cfg, ...s.cfg, excluidos: s.cfg.excluidos ? new Set(s.cfg.excluidos) : null };
   if (s.eventos) A.eventos = structuredClone(s.eventos);
   A.janelaAuto = false; A.restaurado = s.salvoEm;
@@ -217,6 +219,8 @@ function preencherForm(A) {
   $$('.so-esteira').forEach(e => e.style.display = c.ambiente === 'esteira' ? '' : 'none');
   $('#sel-ativ').value = c.atividade;
   $('#sel-metodo').value = c.metodo;
+  const m = A.sessao.meta || {};
+  $('#pt-sexo').value = m.sexo || ''; $('#pt-idade').value = m.idade ?? ''; $('#pt-altura').value = m.altura ?? ''; $('#pt-massa').value = m.massa ?? '';
   infoTrial(A);
 }
 function infoTrial(A) {
@@ -236,6 +240,8 @@ function infoTrial(A) {
 }
 
 const atual = () => estado.analises.get(estado.atual);
+for (const [id, campo] of [['pt-sexo', 'sexo'], ['pt-idade', 'idade'], ['pt-altura', 'altura'], ['pt-massa', 'massa']])
+  $('#' + id).onchange = (e) => { const A = atual(); if (!A) return; A.sessao.meta ||= {}; A.sessao.meta[campo] = campo === 'sexo' ? e.target.value : num(e.target.value); redesenharResultados(); };
 const num = (v) => { const x = parseFloat(String(v).replace(',', '.')); return isFinite(x) ? x : null; };
 function redetectar() { const A = atual(); if (!A) return; detectar(A); preencherForm(A); tl.set(A); tl.redesenhar(); desenharSinal(); recalcular(); }
 $('#in-rotulo').oninput = (e) => { const A = atual(); if (A) { A.rotulo = e.target.value; montarComparar(); } };
@@ -476,13 +482,23 @@ function layoutBase(extra) {
     { xaxis: Object.assign({}, eixo, extra.xaxis), yaxis: Object.assign({}, eixo, extra.yaxis) });
 }
 
+let NORMAS = null; carregarNormas().then(n => { NORMAS = n; redesenharResultados(); });
+function faixaPara(A) {
+  if (!vis.normal || !NORMAS || !A?.res) return null;
+  const vel = A.res.tab.velocidade?.geral?.m;
+  return escolherFaixa(NORMAS, A.res.atividade, vel, A.sessao?.meta?.idade);
+}
 function desenharCurvas(A) {
   const R = A.res, cont = $('#curvas'), cores = { D: css('--d'), E: css('--e') };
+  const faixa = faixaPara(A);
+  $('#nota-normal').innerHTML = !vis.normal ? '' : !NORMAS ? 'Faixa de normalidade indisponível.' : !faixa
+    ? 'Faixa de normalidade: informe a velocidade (passo 2) para escolher a referência.'
+    : `Faixa cinza = normal (média ± 1 DP) de adultos saudáveis${faixa.grupo ? ' · ' + faixa.grupo : ''}, ${fmt(faixa.velRef, 1)} m/s (n = ${faixa.n}) · ${faixa.fonte}.${faixa.longe ? ' <b>Atenção: velocidade de referência distante da do paciente.</b>' : ''} Dados de laboratório com marcadores: diferenças de alguns graus em relação ao OpenCap são esperadas (sobretudo no tornozelo).`;
   const lista = ANGULOS.filter(a => vis.curvas.includes(a[0]) && R.curvas[a[0]] && Object.keys(R.curvas[a[0]]).length);
   cont.innerHTML = lista.map(([c]) => `<div class="curva" id="cv-${c}"></div>`).join('');
   for (const [c, rot] of lista) {
     const shapes = ['D', 'E'].filter(l => R.rdMedio[l] != null).map(l => ({ type: 'line', x0: R.rdMedio[l], x1: R.rdMedio[l], yref: 'paper', y0: 0, y1: 1, line: { color: cores[l], dash: 'dash', width: 1 } }));
-    Plotly.newPlot('cv-' + c, tracosCurva(R.curvas, c, cores, vis.dp), layoutBase({ title: { text: rot, font: { size: 12 }, x: 0.02 }, margin: { l: vis.setas ? 74 : 44, r: 8, t: 30, b: 34 }, showlegend: false, shapes,
+    Plotly.newPlot('cv-' + c, tracosCurva(R.curvas, c, cores, vis.dp, faixa), layoutBase({ title: { text: rot, font: { size: 12 }, x: 0.02 }, margin: { l: vis.setas ? 74 : 44, r: 8, t: 30, b: 34 }, showlegend: false, shapes,
       annotations: vis.setas ? setasEixo(c, css('--mut'), 10, 48) : [],
       xaxis: { title: { text: '% do ciclo', font: { size: 10 } }, range: [0, 100] }, yaxis: { ticksuffix: unidade(c) === '°' ? '°' : ' cm' } }), { displayModeBar: false, responsive: true });
   }
@@ -559,7 +575,7 @@ $('#in-data').valueAsDate = new Date();
 $('#btn-pdf').onclick = async () => {
   const A = atual(); if (!A?.res) return;
   status('#laudo-status', 'Gerando PDF…');
-  try { await gerarPDF(A, dadosLaudo(), $('#chk-comp-laudo').checked ? selecionadosComparacao() : [], vis); status('#laudo-status', 'PDF baixado.'); }
+  try { await gerarPDF(A, dadosLaudo(), $('#chk-comp-laudo').checked ? selecionadosComparacao() : [], { ...vis, faixa: faixaPara(A) }); status('#laudo-status', 'PDF baixado.'); }
   catch (err) { console.error(err); status('#laudo-status', 'Erro ao gerar PDF: ' + err.message, true); }
 };
 $('#btn-xlsx').onclick = () => {
@@ -578,7 +594,7 @@ $('#btn-salvar').onclick = () => {
   const feitos = [...estado.analises.values()].filter(A => A.res && !A.soSalvo);
   if (!feitos.length) { status('#laudo-status', 'Nada para salvar ainda.', true); return; }
   const dados = { ferramenta: 'Marcha OpenCap', versao: VERSAO_ARQ, salvoEm: new Date().toISOString(), laudo: dadosLaudo(),
-    analises: feitos.map(A => ({ sessao: A.sessao.nome, trial: A.trial.nome, rotulo: A.rotulo, auto: !!A.auto,
+    analises: feitos.map(A => ({ sessao: A.sessao.nome, trial: A.trial.nome, rotulo: A.rotulo, auto: !!A.auto, participante: A.sessao.meta || {},
       cfg: { ...A.cfg, excluidos: A.cfg.excluidos ? [...A.cfg.excluidos] : null }, eventos: A.eventos, res: resParaJSON(A.res) })) };
   const nome = (dadosLaudo().paciente || feitos[0].sessao.nome).replace(/[^\wÀ-ú\-]+/g, '_').slice(0, 40);
   const blob = new Blob([JSON.stringify(dados)], { type: 'application/json' });
