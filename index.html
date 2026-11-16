@@ -107,16 +107,18 @@
       <div id="timeline" class="timeline"></div>
       <div class="linha botoes-ev">
         <span class="dica">Marcar no quadro atual:</span>
-        <button data-ev="CI_D" class="ev d">CI direito <kbd>Q</kbd></button><button data-ev="RD_D" class="ev d">RD direito <kbd>W</kbd></button>
-        <button data-ev="CI_E" class="ev e">CI esquerdo <kbd>O</kbd></button><button data-ev="RD_E" class="ev e">RD esquerdo <kbd>P</kbd></button>
+        <button data-ev="CI_D" class="ev d" title="touchdown: o pé toca o chão">TD direito <kbd>Q</kbd></button><button data-ev="RD_D" class="ev d" title="toe-off: os dedos deixam o chão">TO direito <kbd>W</kbd></button>
+        <button data-ev="CI_E" class="ev e" title="touchdown: o pé toca o chão">TD esquerdo <kbd>O</kbd></button><button data-ev="RD_E" class="ev e" title="toe-off: os dedos deixam o chão">TO esquerdo <kbd>P</kbd></button>
         <button id="btn-remover">Apagar selecionado <kbd>Del</kbd></button>
+        <button id="btn-limpar" class="perigo" title="apaga todos os TD e TO deste trial para marcar do zero">Limpar todas as marcações</button>
       </div>
       <div class="linha">
         <button id="btn-redetectar" class="sec">Detectar de novo</button>
         <button id="btn-estavel" class="sec">Trecho estável (auto)</button>
         <button id="btn-tudo" class="sec">Trial inteiro</button>
       </div>
-      <p class="dica">Barra = apoio (do contato inicial ▼ até a retirada do pé ▮). <b>Clique</b> num evento para selecionar e <b>arraste</b>, ou use <kbd>←</kbd> <kbd>→</kbd> (1 quadro; <kbd>Shift</kbd> = 5). Sem evento selecionado, as setas andam no vídeo e <kbd>espaço</kbd> toca/pausa. Na faixa de cima, arraste as <b>alças</b> para cortar o início e o fim. Roda do mouse = zoom.</p>
+      <p class="glossario"><b>TD</b> (<i>touchdown</i>) = o instante em que o pé <b>toca o chão</b> (contato inicial). <b>TO</b> (<i>toe-off</i> ou <i>takeoff</i>) = o instante em que os <b>dedos deixam o chão</b> (retirada do pé). Do TD ao TO o pé está apoiado (fase de apoio); do TO ao próximo TD está no ar (fase de balanço).</p>
+      <p class="dica">Barra = apoio (do TD ▼ até o TO ▮). <b>Clique</b> num evento para selecionar e <b>arraste</b>, ou use <kbd>←</kbd> <kbd>→</kbd> (1 quadro; <kbd>Shift</kbd> = 5). Sem evento selecionado, as setas andam no vídeo e <kbd>espaço</kbd> toca/pausa. Na faixa de cima, arraste as <b>alças</b> para cortar o início e o fim. Roda do mouse = zoom.</p>
       <details class="sinal"><summary>Ver o sinal usado na detecção</summary><div id="plot-linha" class="plot-linha"></div></details>
     </div>
   </div>
@@ -149,7 +151,7 @@
       <table id="tab-pontos" class="tab"></table>
     </div>
   </div>
-  <h3>Ângulos ao longo do ciclo <span class="dica">linha = média, faixa = ±1 DP, tracejado = retirada do pé</span></h3>
+  <h3>Ângulos ao longo do ciclo <span class="dica">linha = média, faixa = ±1 DP, tracejado = TO (dedos deixam o chão)</span></h3>
   <div id="curvas" class="curvas"></div>
   <details class="passadas">
     <summary>Passadas usadas (<span id="n-passadas"></span>) · desmarque as que estiverem erradas</summary>
@@ -182,7 +184,7 @@
 </main>
 
 <footer class="rodape">
-  Estimativas a partir de vídeo (OpenCap). Use com julgamento clínico. Eventos detectados automaticamente (marcha: Zeni et al., 2008; corrida: Patoz et al., 2021) e conferidos no vídeo. Altura do pé medida em relação ao plano da esteira/chão. · <a href="https://github.com/EdilsonBorba/marcha-opencap" target="_blank">código</a>
+  Estimativas a partir de vídeo (OpenCap). Use com julgamento clínico. Eventos (TD = touchdown, o pé toca o chão; TO = toe-off, os dedos deixam o chão) detectados automaticamente (marcha: Zeni et al., 2008; corrida: Patoz et al., 2021) e conferidos no vídeo. Altura do pé medida em relação ao plano da esteira/chão. · <a href="https://github.com/EdilsonBorba/marcha-opencap" target="_blank">código</a>
 </footer>
 <script type="module" src="js/app.js"></script>
 </body>

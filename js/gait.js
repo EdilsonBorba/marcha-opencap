@@ -177,7 +177,7 @@ export function detectarEventos(trc, mot, ambiente, atividade, metodoEscolhido, 
       }
       ev[ci] = cis; ev[rd] = rds;
     }
-    return { ...base, eventos: ev, metodo: 'Patoz et al. (2021): aceleração vertical do calcâneo e do meio dos dedos; RD pela altura dos dedos' };
+    return { ...base, eventos: ev, metodo: 'Patoz et al. (2021): TD pela aceleração vertical do calcâneo e do meio dos dedos; TO pela altura dos dedos' };
   }
   if (metodo === 'vertical') {
     // Velocidade vertical (Leitch et al., 2011): CI = vel. vertical do calcâneo cruza de negativa para positiva
@@ -212,7 +212,7 @@ export function detectarEventos(trc, mot, ambiente, atividade, metodoEscolhido, 
     }
   }
   return { ...base, eventos: ev,
-    metodo: ativ === 'corrida' ? 'CI: Zeni et al. (2008); RD: pico de extensão do joelho (Fellin et al., 2010)' : 'Zeni et al. (2008)' };
+    metodo: ativ === 'corrida' ? 'TD: Zeni et al. (2008); TO: pico de extensão do joelho (Fellin et al., 2010)' : 'Zeni et al. (2008)' };
 }
 
 // ---------- variáveis ----------
@@ -334,7 +334,7 @@ const VARS = [
   ['passo', 'Comprimento do passo', 'm', 2],
   ['largura', 'Largura do passo', 'cm', 1],
   ['oscCM', 'Oscilação vertical do centro de massa', 'cm', 1],
-  ['overstride', 'Calcanhar à frente do centro de massa no contato', 'cm', 1],
+  ['overstride', 'Calcanhar à frente do centro de massa no TD', 'cm', 1],
   ['duracao', 'Tempo da passada', 's', 2],
   ['passoT', 'Tempo do passo', 's', 3],
   ['apoioPct', 'Apoio', '% do ciclo', 1],
@@ -389,7 +389,7 @@ function pontosChave(curvas, rd) {
   const max = (a, i0, i1) => Math.max(...a.slice(i0, i1 + 1));
   const min = (a, i0, i1) => Math.min(...a.slice(i0, i1 + 1));
   const def = [
-    ['Joelho · flexão no contato inicial', 'knee_angle', (a) => a[0]],
+    ['Joelho · flexão no TD (contato inicial)', 'knee_angle', (a) => a[0]],
     ['Joelho · pico de flexão no apoio', 'knee_angle', (a, r) => max(a, 0, Math.round(r * 0.6))],
     ['Joelho · pico de flexão no balanço', 'knee_angle', (a, r) => max(a, r, 100)],
     ['Quadril · pico de flexão', 'hip_flexion', (a) => max(a, 0, 100)],

@@ -359,6 +359,15 @@ function marcar(k) {
 }
 $$('[data-ev]').forEach(b => b.onclick = () => marcar(b.dataset.ev));
 $('#btn-remover').onclick = () => { if (!tl.apagarSel()) $('#video-status').textContent = 'Clique num evento na linha do tempo para selecioná-lo.'; };
+let limparTimer = null;
+$('#btn-limpar').onclick = () => {
+  const A = atual(); if (!A) return; const b = $('#btn-limpar');
+  if (!b.classList.contains('confirma')) { b.classList.add('confirma'); b.textContent = 'Clique de novo para apagar todos os TD e TO'; clearTimeout(limparTimer); limparTimer = setTimeout(() => { b.classList.remove('confirma'); b.textContent = 'Limpar todas as marcações'; }, 4000); return; }
+  clearTimeout(limparTimer); b.classList.remove('confirma'); b.textContent = 'Limpar todas as marcações';
+  pausar(); for (const k of ['CI_D', 'RD_D', 'CI_E', 'RD_E']) A.eventos[k] = [];
+  A.cfg.excluidos = null; tl.limparSel(); tl.redesenhar(); desenharSinal(); recalcular(); desenharEsq();
+  $('#video-status').textContent = 'Marcações apagadas. Marque com Q/W (direito) e O/P (esquerdo), ou use “Detectar de novo”.';
+};
 $('#btn-tudo').onclick = () => { const A = atual(); A.cfg.janela = null; A.janelaAuto = false; A.cfg.excluidos = null; infoTrial(A); tl.redesenhar(); recalcular(); };
 $('#btn-estavel').onclick = () => { const A = atual(); A.cfg.janela = trechoEstavel(A.eventos, A.trial.mot.time); A.janelaAuto = true; A.cfg.excluidos = null; infoTrial(A); tl.redesenhar(); recalcular(); };
 $('#btn-redetectar').onclick = redetectar;
@@ -386,7 +395,7 @@ function desenharSinal() {
     { x: t, y: Array.from(s.calcL), name: 'Calcâneo E', line: { color: cor.e, width: 1.5 } },
     { x: t, y: Array.from(s.toeL), name: 'Dedos E', line: { color: cor.e, width: 1, dash: 'dot' } },
   ];
-  for (const [k, nome, sig, simb, l] of [['CI_D', 'CI D', 'calcR', 'triangle-down', 'd'], ['RD_D', 'RD D', 'toeR', 'square', 'd'], ['CI_E', 'CI E', 'calcL', 'triangle-down', 'e'], ['RD_E', 'RD E', 'toeL', 'square', 'e']])
+  for (const [k, nome, sig, simb, l] of [['CI_D', 'TD D', 'calcR', 'triangle-down', 'd'], ['RD_D', 'TO D', 'toeR', 'square', 'd'], ['CI_E', 'TD E', 'calcL', 'triangle-down', 'e'], ['RD_E', 'TO E', 'toeL', 'square', 'e']])
     tr.push({ x: A.eventos[k].map(i => t[i]), y: A.eventos[k].map(i => s[sig][i]), name: nome, mode: 'markers', marker: { symbol: simb, size: 8, color: cor[l] } });
   Plotly.react('plot-linha', tr, layoutBase({ margin: { l: 50, r: 10, t: 10, b: 36 }, legend: { orientation: 'h', y: 1.15, font: { size: 11 } }, xaxis: { title: 'tempo (s)' }, yaxis: { title: 'à frente do sacro (m)' } }), { displaylogo: false, responsive: true });
 }
@@ -436,7 +445,7 @@ function mostrarResultados(A) {
     R.pontos.filter(p => vis.curvas.includes(p.curva)).map(p => `<tr><td>${p.rotulo}</td><td>${fmt(p.D, 0)}</td><td>${fmt(p.E, 0)}</td><td>${p.D != null && p.E != null ? fmt(p.D - p.E, 0) : '–'}</td></tr>`).join('');
   desenharCurvas(A);
   $('#n-passadas').textContent = `${ok.length} de ${R.passadas.length}`;
-  $('#lista-passadas').innerHTML = R.passadas.map(p => `<label class="${p.suspeita ? 'susp' : ''}" title="${p.suspeita ? 'duração fora do padrão ou sem RD' : ''}"><input type="checkbox" data-p="${p.id}" ${p.excluida ? '' : 'checked'}> ${p.lado}${p.n} · ${fmt(p.t0, 1)} s</label>`).join('');
+  $('#lista-passadas').innerHTML = R.passadas.map(p => `<label class="${p.suspeita ? 'susp' : ''}" title="${p.suspeita ? 'duração fora do padrão ou sem TO' : ''}"><input type="checkbox" data-p="${p.id}" ${p.excluida ? '' : 'checked'}> ${p.lado}${p.n} · ${fmt(p.t0, 1)} s</label>`).join('');
   $$('#lista-passadas input').forEach(c => c.onchange = () => { if (c.checked) A.cfg.excluidos.delete(c.dataset.p); else A.cfg.excluidos.add(c.dataset.p); recalcularJa(); });
 }
 

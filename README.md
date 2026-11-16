@@ -8,7 +8,7 @@ Tudo roda no navegador: os arquivos do paciente **não são enviados** a nenhum 
 
 ## O que faz
 1. Lê o **ZIP** baixado do OpenCap ou a **pasta** descompactada (pasta = sem limite de tamanho).
-2. Detecta os eventos automaticamente (contato inicial e retirada do pé), e você **confere e corrige no vídeo**.
+2. Detecta os eventos automaticamente, **TD** (*touchdown*: o pé toca o chão) e **TO** (*toe-off*: os dedos deixam o chão), e você **confere e corrige no vídeo** (ou limpa tudo e marca do zero).
    - Marcha: posição do pé em relação ao sacro (Zeni et al., 2008).
    - Corrida: aceleração vertical do calcâneo e do meio dos dedos + altura dos dedos (Patoz et al., 2021). Também disponível: velocidade vertical (Leitch et al., 2011).
    - A altura do pé é medida em relação ao plano da esteira/chão, estimado dos pés apoiados (funciona com esteira inclinada).

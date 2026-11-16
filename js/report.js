@@ -32,7 +32,8 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
   const txt = (s, x, yy, o = {}) => { pdf.setFont('helvetica', o.b ? 'bold' : 'normal'); pdf.setFontSize(o.s || 10); pdf.setTextColor(o.c || '#1d1d1b'); pdf.text(String(s), x, yy, o.al ? { align: o.al } : undefined); };
   const linha = (yy) => { pdf.setDrawColor('#d8d5cc'); pdf.line(M, yy, W - M, yy); };
   const rodape = () => {
-    txt('Estimativas a partir de vídeo (OpenCap). Interpretar com julgamento clínico. Eventos: ' + R.metodo + '.', M, 288, { s: 7, c: '#777' });
+    txt('Estimativas a partir de vídeo (OpenCap). Interpretar com julgamento clínico. TD = touchdown (pé toca o chão); TO = toe-off (dedos deixam o chão).', M, 284, { s: 7, c: '#777' });
+    txt('Eventos: ' + R.metodo + '.', M, 288, { s: 7, c: '#777' });
     txt(`Página ${pdf.getNumberOfPages()}`, W - M, 288, { s: 7, c: '#777', al: 'right' });
   };
 
@@ -91,7 +92,7 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
   // página de curvas
   pdf.addPage(); y = M;
   txt('Ângulos ao longo do ciclo', M, y + 4, { s: 13, b: true });
-  txt('Linha = média; faixa = ±1 DP; tracejado = retirada do pé.  Vermelho = direito; azul = esquerdo.', M, y + 10, { s: 8, c: '#666' });
+  txt('Linha = média; faixa = ±1 DP; tracejado = TO (dedos deixam o chão).  Vermelho = direito; azul = esquerdo.', M, y + 10, { s: 8, c: '#666' });
   y += 15;
   const w = (W - 2 * M - 6) / 2, h = w * 300 / 520;
   for (let i = 0; i < ANG.length; i++) {
@@ -159,7 +160,7 @@ export function gerarExcel(A, D, comparacao) {
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ps), 'Passadas');
 
   const ev = [['Evento', 'Lado', 'Quadro', 'Tempo (s)']];
-  for (const [k, nome, lado] of [['CI_D', 'Contato inicial', 'D'], ['RD_D', 'Retirada do pé', 'D'], ['CI_E', 'Contato inicial', 'E'], ['RD_E', 'Retirada do pé', 'E']])
+  for (const [k, nome, lado] of [['CI_D', 'TD (touchdown: pé toca o chão)', 'D'], ['RD_D', 'TO (toe-off: dedos deixam o chão)', 'D'], ['CI_E', 'TD (touchdown: pé toca o chão)', 'E'], ['RD_E', 'TO (toe-off: dedos deixam o chão)', 'E']])
     A.eventos[k].forEach(i => ev.push([nome, lado, i, t[i]]));
   ev.splice(1, ev.length - 1, ...ev.slice(1).sort((a, b) => a[3] - b[3]));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ev), 'Eventos');
