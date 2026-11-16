@@ -431,6 +431,11 @@ document.addEventListener('keydown', (e) => {
   else if (k === ' ') { estado.tocando ? pausar() : tocar(); e.preventDefault(); }
   else if (k === 'Delete' || k === 'Backspace') { if (tl.apagarSel()) e.preventDefault(); }
   else if (k === 'Escape') tl.limparSel();
+  else if (k === '[' || k === ']') {
+    const A = atual(); const N = A.trial.mot.time.length - 1, [j0, j1] = A.cfg.janela || [0, N];
+    A.cfg.janela = k === '[' ? [Math.min(estado.frame, j1 - 1), j1] : [j0, Math.max(estado.frame, j0 + 1)];
+    A.janelaAuto = false; A.cfg.excluidos = null; infoTrial(A); tl.redesenhar(); recalcular(); e.preventDefault();
+  }
   else { const m = { q: 'CI_D', w: 'RD_D', o: 'CI_E', p: 'RD_E' }[k.toLowerCase()]; if (m) { marcar(m); e.preventDefault(); } }
 });
 

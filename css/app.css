@@ -104,6 +104,11 @@ video{width:100%;max-height:520px;background:#000;border-radius:8px}
 .tl-vis{fill:none;stroke:var(--acc);stroke-width:1.5}
 .tl-alca rect{fill:var(--mut);cursor:ew-resize}
 .tl-alca line{stroke:var(--card);stroke-width:1.5;pointer-events:none}
+.tl-brush{fill:color-mix(in srgb,var(--acc) 30%,transparent);stroke:var(--acc)}
+.tl-alca2{cursor:ew-resize}
+.tl-alca2 line{stroke:var(--acc);stroke-width:2.5}
+.tl-aba{fill:var(--acc)}
+.tl-aba-t{font-size:9.5px;fill:var(--acc-fg);font-weight:600;pointer-events:none}
 .tl-cursor{stroke:var(--fg);stroke-width:1.5;pointer-events:none}
 .tl-ev{cursor:grab}
 .tl-ev.sel path,.tl-ev.sel rect:not([fill=transparent]){stroke:var(--fg);stroke-width:1.5}

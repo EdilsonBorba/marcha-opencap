@@ -41,6 +41,7 @@ export function criarTimeline(el, cb) {
       mk('rect', { x: xo(i) - 5, y: 1, width: 10, height: H.ov - 2, rx: 3 }, g);
       mk('line', { x1: xo(i), x2: xo(i), y1: 7, y2: H.ov - 7 }, g);
     }
+    if (st.brush) mk('rect', { x: xo(st.brush[0]), y: 2, width: Math.max(1, xo(st.brush[1]) - xo(st.brush[0])), height: H.ov - 4, class: 'tl-brush' });
     mk('line', { x1: xo(st.frame), x2: xo(st.frame), y1: 2, y2: H.ov - 2, class: 'tl-cursor' });
     // ---- faixas por pé ----
     const y0 = H.ov + H.gap;
@@ -56,7 +57,8 @@ export function criarTimeline(el, cb) {
         const prox = ci[k + 1] ?? Infinity, r = rd.find(i => i > ci[k] && i < prox);
         const fim = r ?? Math.min(prox, ci[k] + 1);
         if (fim < st.v0 || ci[k] > st.v1) continue;
-        mk('rect', { x: xv(ci[k]), y: yl + 10, width: Math.max(1, xv(fim) - xv(ci[k])), height: H.lane - 20, rx: 3, fill: cor(l), opacity: r == null ? 0.25 : 0.55 });
+        const xa = Math.max(50, xv(ci[k])), xb = Math.min(W() - 10, xv(fim));
+        if (xb > xa) mk('rect', { x: xa, y: yl + 10, width: Math.max(1, xb - xa), height: H.lane - 20, rx: 3, fill: cor(l), opacity: r == null ? 0.25 : 0.55 });
       }
       // marcadores
       for (const tipo of ['ci', 'rd']) {
@@ -72,6 +74,16 @@ export function criarTimeline(el, cb) {
         }
       }
     });
+    // alças grandes de início/fim do trecho analisado, dentro das faixas
+    for (const [lado, i] of [['ini', j0], ['fim', j1]]) {
+      if (i < st.v0 - 1 || i > st.v1 + 1) continue;
+      const x = xv(i), g = mk('g', { class: 'tl-alca2', 'data-alca2': lado });
+      mk('rect', { x: x - 7, y: y0 - 2, width: 14, height: 2 * H.lane + 4, fill: 'transparent' }, g);
+      mk('line', { x1: x, x2: x, y1: y0 - 2, y2: y0 + 2 * H.lane + 2 }, g);
+      const tw = 46, tx = lado === 'ini' ? x : x - tw;
+      mk('rect', { x: tx, y: y0 - 2, width: tw, height: 14, rx: 3, class: 'tl-aba' }, g);
+      mk('text', { x: tx + tw / 2, y: y0 + 8.5, 'text-anchor': 'middle', class: 'tl-aba-t' }, g).textContent = lado === 'ini' ? '▶ início' : 'fim ◀';
+    }
     // eixo de tempo
     const ye = y0 + 2 * H.lane + 4;
     const dur = tt(st.v1) - tt(st.v0), passo = dur > 8 ? 1 : dur > 3 ? 0.5 : dur > 1.2 ? 0.2 : 0.1;
@@ -90,16 +102,17 @@ export function criarTimeline(el, cb) {
   svg.addEventListener('pointerdown', (e) => {
     if (!st.A) return;
     const x = ptX(e), y = ptY(e);
-    const alca = e.target.closest('[data-alca]'), ev = e.target.closest('[data-k]');
-    if (alca) { st.drag = { tipo: 'alca', lado: alca.dataset.alca }; svg.setPointerCapture(e.pointerId); return; }
+    const alca = e.target.closest('[data-alca]'), alca2 = e.target.closest('[data-alca2]'), ev = e.target.closest('[data-k]');
+    if (alca) { st.drag = { tipo: 'alca', lado: alca.dataset.alca, map: io }; svg.setPointerCapture(e.pointerId); return; }
+    if (alca2) { st.drag = { tipo: 'alca', lado: alca2.dataset.alca2, map: iv }; svg.setPointerCapture(e.pointerId); return; }
     if (ev) {
       st.sel = { k: ev.dataset.k, i: +ev.dataset.i };
       st.drag = { tipo: 'ev', moveu: false };
       svg.setPointerCapture(e.pointerId);
       cb.onSeek(st.sel.i); desenhar(); return;
     }
-    if (y < H.ov) { // faixa geral: centraliza a janela
-      const c = io(x), w = st.v1 - st.v0; setView(c - w / 2, c + w / 2); cb.onSeek(Math.round(c)); return;
+    if (y < H.ov) { // faixa geral: clique centraliza; arrastar seleciona o trecho analisado
+      st.drag = { tipo: 'brush', x0: x, i0: io(x) }; svg.setPointerCapture(e.pointerId); return;
     }
     st.sel = null; cb.onSeek(Math.round(iv(x))); desenhar();
     st.drag = { tipo: 'cursor' }; svg.setPointerCapture(e.pointerId);
@@ -108,7 +121,7 @@ export function criarTimeline(el, cb) {
     if (!st.drag) return;
     const x = ptX(e);
     if (st.drag.tipo === 'alca') {
-      const i = Math.round(Math.max(0, Math.min(n() - 1, io(x))));
+      const i = Math.round(Math.max(0, Math.min(n() - 1, st.drag.map(x))));
       const [j0, j1] = jan();
       st.A.cfg.janela = st.drag.lado === 'ini' ? [Math.min(i, j1 - 1), j1] : [j0, Math.max(i, j0 + 1)];
       cb.onSeek(i); desenhar();
@@ -116,10 +129,19 @@ export function criarTimeline(el, cb) {
       const i = Math.round(Math.max(0, Math.min(n() - 1, iv(x))));
       if (i !== st.sel.i) { moverSel(i - st.sel.i, false); st.drag.moveu = true; }
     } else if (st.drag.tipo === 'cursor') cb.onSeek(Math.round(iv(x)));
+    else if (st.drag.tipo === 'brush' && Math.abs(x - st.drag.x0) > 4) {
+      const a = Math.max(0, Math.min(n() - 1, st.drag.i0)), b = Math.max(0, Math.min(n() - 1, io(x)));
+      st.brush = [Math.round(Math.min(a, b)), Math.round(Math.max(a, b))]; desenhar();
+    }
   });
   svg.addEventListener('pointerup', () => {
     if (!st.drag) return;
     const d = st.drag; st.drag = null;
+    if (d.tipo === 'brush') {
+      if (st.brush && st.brush[1] - st.brush[0] > 5) { st.A.cfg.janela = st.brush; st.brush = null; const w = st.v1 - st.v0; setView(st.A.cfg.janela[0] - w * 0.1, st.A.cfg.janela[0] + w * 0.9); cb.onJanela(); }
+      else { st.brush = null; const c = d.i0, w = st.v1 - st.v0; setView(c - w / 2, c + w / 2); cb.onSeek(Math.round(c)); }
+      return;
+    }
     if (d.tipo === 'alca') cb.onJanela();
     if (d.tipo === 'ev' && d.moveu) cb.onChange();
   });
