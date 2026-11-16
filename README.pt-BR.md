@@ -16,15 +16,16 @@ Tudo roda no navegador: os arquivos do paciente **não são enviados** a nenhum 
 3. **Filtro passa-baixa** em todos os dados (Butterworth de 4ª ordem sem defasagem; automático 6 Hz marcha / 10 Hz corrida, editável ou desligado).
 4. Detecta o **trecho estável** (tira a aceleração da esteira e o início/fim no solo).
 5. **Esteira (com inclinação) ou solo.** Na esteira, os comprimentos vêm da velocidade informada.
-6. Calcula velocidade, cadência, passo, passada, largura do passo, apoio, balanço, duplo apoio ou tempo de voo, **simetria D×E** e **variabilidade (CV)**.
-7. Curvas de quadril, joelho, tornozelo, pelve, tronco e **centro de massa nos 3 eixos** (média ± DP, 0–100 % do ciclo), com setas de sentido no eixo.
-8. **Faixa de normalidade** da literatura (adultos saudáveis), escolhida pela velocidade e pela faixa etária.
-9. Mostra o **esqueleto do modelo do OpenSim em 3D** ao lado do vídeo (cinemática direta do `.osim` com os ângulos do `.mot`; validado: marcadores do modelo a ~2 cm dos do OpenCap) e calcula o **centro de massa** pelas massas dos segmentos do modelo escalado.
-10. Dados do participante (sexo, idade, altura, massa) vêm do OpenCap e podem ser corrigidos.
-11. Avisa quando o rastreamento parece ruim (índice de regularidade).
-12. **Compara** trials ou sessões (antes × depois, condições), quantos quiser.
-13. Gera **laudo em PDF** e **Excel** com todos os dados.
-14. **Salva a análise** num arquivo `.json` (marcações, ajustes e resultados). Para comparar depois, basta abrir o arquivo, mesmo sem o ZIP; com o ZIP, tudo volta a ficar editável.
+6. **Corrida:** ângulo do pé no TD e padrão de contato (retropé / mediopé / antepé; Altman & Davis, 2012).
+7. Calcula velocidade, cadência, passo, passada, largura do passo, apoio, balanço, duplo apoio ou tempo de voo, **simetria D×E** e **variabilidade (CV)**.
+8. Curvas de quadril, joelho, tornozelo, pelve, tronco e **centro de massa nos 3 eixos** (média ± DP, 0–100 % do ciclo), com setas de sentido no eixo.
+9. **Faixa de normalidade** da literatura (adultos saudáveis), escolhida pela velocidade e pela faixa etária.
+10. Mostra o **esqueleto do modelo do OpenSim em 3D** ao lado do vídeo (cinemática direta do `.osim` com os ângulos do `.mot`; validado: marcadores do modelo a ~2 cm dos do OpenCap) e calcula o **centro de massa** pelas massas dos segmentos do modelo escalado.
+11. Dados do participante (sexo, idade, altura, massa) vêm do OpenCap e podem ser corrigidos.
+12. Avisa quando o rastreamento parece ruim (índice de regularidade).
+13. **Compara** trials ou sessões (antes × depois, condições), quantos quiser.
+14. Gera **laudo em PDF** (com caixa de **achados** automáticos: assimetrias ≥ 10 %, variabilidade, qualidade do rastreamento) e **Excel** com todos os dados.
+15. **Salva a análise** num arquivo `.json` (marcações, ajustes e resultados). Para comparar depois, basta abrir o arquivo, mesmo sem o ZIP; com o ZIP, tudo volta a ficar editável.
 
 ## Sobre os eventos (TD e TO)
 A detecção é automática e você escolhe o método:
@@ -68,6 +69,7 @@ Borba, E. F. de. *Marcha OpenCap: análise de marcha e corrida a partir de dados
 ## Referências
 - Zeni JA, Richards JG, Higginson JS (2008). Two simple methods for determining gait events during treadmill and overground walking using kinematic data. *Gait & Posture* 27:710–714.
 - Patoz A, Lussiana T, Gindre C, Malatesta D (2021). A novel kinematic detection of foot-strike and toe-off events during noninstrumented treadmill running to estimate contact time. *J Biomech* 128:110737.
+- Altman AR, Davis IS (2012). A kinematic method for footstrike pattern detection in barefoot and shod runners. *Gait & Posture* 35:298–300.
 - Leitch J et al. (2011). Identifying gait events without a force plate during running: a comparison of methods. *Gait & Posture* 33:130–132.
 - Fukuchi RK, Fukuchi CA, Duarte M (2017). A public dataset of running biomechanics and the effects of running speed on lower extremity kinematics and kinetics. *PeerJ* 5:e3298.
 - Fukuchi CA, Fukuchi RK, Duarte M (2018). A public dataset of overground and treadmill walking kinematics and kinetics in healthy individuals. *PeerJ* 6:e4640.

@@ -16,15 +16,16 @@ Everything runs in the browser: patient files are **never uploaded** to any serv
 3. **Low-pass filter** for all data (zero-lag 4th-order Butterworth; automatic 6 Hz walking / 10 Hz running, editable, or off).
 4. Detects the **steady window** (removes treadmill acceleration and overground start/end).
 5. **Treadmill (with incline) or overground.** On the treadmill, lengths come from the entered belt speed.
-6. Computes speed, cadence, step and stride length, step width, stance, swing, double support or flight time, **right–left symmetry** and **variability (CV)**.
-7. Curves for hip, knee, ankle, pelvis, trunk and **center of mass in 3 axes** (mean ± SD, 0–100 % of the cycle), with direction arrows on the axis.
-8. **Normative band** from the literature (healthy adults), chosen by speed and age group.
-9. Shows the **OpenSim model skeleton in 3D** next to the video (forward kinematics of the `.osim` with the `.mot` angles; validated: model markers within ~2 cm of OpenCap's) and computes the **center of mass** from the segment masses of the scaled model.
-10. Participant data (sex, age, height, mass) come from OpenCap and can be corrected.
-11. Warns when tracking looks poor (regularity index).
-12. **Compares** trials or sessions (before × after, conditions), as many as you like.
-13. Generates a **PDF report** and an **Excel** file with all data.
-14. **Saves the analysis** to a `.json` file (marks, settings and results). To compare later, just open the file, even without the ZIP; with the ZIP, everything becomes editable again.
+6. **Running:** foot strike angle at TD and pattern (rearfoot / midfoot / forefoot; Altman & Davis, 2012).
+7. Computes speed, cadence, step and stride length, step width, stance, swing, double support or flight time, **right–left symmetry** and **variability (CV)**.
+8. Curves for hip, knee, ankle, pelvis, trunk and **center of mass in 3 axes** (mean ± SD, 0–100 % of the cycle), with direction arrows on the axis.
+9. **Normative band** from the literature (healthy adults), chosen by speed and age group.
+10. Shows the **OpenSim model skeleton in 3D** next to the video (forward kinematics of the `.osim` with the `.mot` angles; validated: model markers within ~2 cm of OpenCap's) and computes the **center of mass** from the segment masses of the scaled model.
+11. Participant data (sex, age, height, mass) come from OpenCap and can be corrected.
+12. Warns when tracking looks poor (regularity index).
+13. **Compares** trials or sessions (before × after, conditions), as many as you like.
+14. Generates a **PDF report** (with an automatic **findings** box: asymmetries ≥ 10 %, variability, tracking quality) and an **Excel** file with all data.
+15. **Saves the analysis** to a `.json` file (marks, settings and results). To compare later, just open the file, even without the ZIP; with the ZIP, everything becomes editable again.
 
 ## About the events (TD and TO)
 Detection is automatic and you choose the method:
@@ -68,6 +69,7 @@ Borba, E. F. de. *Marcha OpenCap: gait and running analysis from OpenCap data* [
 ## References
 - Zeni JA, Richards JG, Higginson JS (2008). Two simple methods for determining gait events during treadmill and overground walking using kinematic data. *Gait & Posture* 27:710–714.
 - Patoz A, Lussiana T, Gindre C, Malatesta D (2021). A novel kinematic detection of foot-strike and toe-off events during noninstrumented treadmill running to estimate contact time. *J Biomech* 128:110737.
+- Altman AR, Davis IS (2012). A kinematic method for footstrike pattern detection in barefoot and shod runners. *Gait & Posture* 35:298–300.
 - Leitch J et al. (2011). Identifying gait events without a force plate during running: a comparison of methods. *Gait & Posture* 33:130–132.
 - Fukuchi RK, Fukuchi CA, Duarte M (2017). A public dataset of running biomechanics and the effects of running speed on lower extremity kinematics and kinetics. *PeerJ* 5:e3298.
 - Fukuchi CA, Fukuchi RK, Duarte M (2018). A public dataset of overground and treadmill walking kinematics and kinetics in healthy individuals. *PeerJ* 6:e4640.
