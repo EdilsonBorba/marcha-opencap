@@ -257,7 +257,7 @@ export function analisar(trial, ev, cfg) {
   const E = {}; for (const k in ev) E[k] = ev[k].filter(dentro);
   const P = trial.trc ? marcadoresPe(trial.trc) : null;
   const d = trial.trc ? direcao(trial.trc, cfg.ambiente) : null;
-  const vEst = cfg.ambiente === 'esteira' ? (cfg.velEsteira || 0) / 3.6 : null;
+  const vEst = cfg.ambiente === 'esteira' && cfg.velEsteira ? cfg.velEsteira / 3.6 : null;
   const lados = { D: { ci: E.CI_D, rd: E.RD_D, oci: E.CI_E, ord: E.RD_E, calc: P?.calcR, ocalc: P?.calcL, s: '_r' },
                   E: { ci: E.CI_E, rd: E.RD_E, oci: E.CI_D, ord: E.RD_D, calc: P?.calcL, ocalc: P?.calcR, s: '_l' } };
   const passadas = [];
@@ -287,7 +287,7 @@ export function analisar(trial, ev, cfg) {
       if (vEst != null) {
         p.passada = vEst * dur;
         p.passo = p.passoT != null ? vEst * p.passoT : null;
-      } else if (P) {
+      } else if (P && cfg.ambiente === 'solo') {
         const pos = (m, i) => m.x[i] * d.x + m.z[i] * d.z;
         p.passada = Math.abs(pos(L.calc, b) - pos(L.calc, a));
         p.passo = ociAnt != null ? Math.abs(pos(L.calc, a) - pos(L.ocalc, a)) : null;

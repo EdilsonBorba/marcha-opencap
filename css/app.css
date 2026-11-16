@@ -118,3 +118,7 @@ kbd{font:11px ui-monospace,Menlo,monospace;border:1px solid var(--line);border-b
 .bloco-api>summary{cursor:pointer}
 .bloco-api form{margin-top:10px}
 .diag pre{white-space:pre-wrap;font-size:.75rem;max-height:240px;overflow:auto;background:var(--bg);padding:8px;border-radius:6px}
+
+.comp-lista{display:block}
+.comp-sessao{margin:4px 0 8px}
+.comp-itens{display:flex;flex-wrap:wrap;gap:4px 16px}

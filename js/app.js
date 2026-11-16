@@ -91,7 +91,7 @@ async function listarAPI() {
     diag({ sessoes: sessoesAPI.length, exemploCampos: sessoesAPI[0] ? Object.keys(sessoesAPI[0]) : [] });
     $('#form-login').hidden = true; $('#api-logado').hidden = false;
     $('#api-quem').textContent = `${sessoesAPI.length} sessões na conta`;
-    $('#api-sessoes').innerHTML = '<option value="">escolha…</option>' + sessoesAPI.map(s => `<option value="${s.id}">${esc(s.name || 'sem nome')} · ${String(s.created_at || '').slice(0, 10).split('-').reverse().join('/')}${s.trials ? ` · ${api.trialsDeMovimento(s).length} trials` : ''}</option>`).join('');
+    $('#api-sessoes').innerHTML = '<option value="">escolha…</option>' + sessoesAPI.map(s => `<option value="${s.id}">${esc(s.name || 'sem nome')} · ${String(s.created_at || '').slice(0, 10).split('-').reverse().join('/')}</option>`).join('');
     status('#api-status', 'Escolha a sessão.');
   } catch (err) { status('#api-status', 'Não consegui listar as sessões: ' + err.message, true); diag({ sessoes: err.status, corpo: err.corpo }); if (err.status === 401) api.sair(); }
 }
@@ -130,22 +130,35 @@ async function selecionar(k) {
   estado.atual = k;
   let A = estado.analises.get(k);
   if (!A) {
-    const [sid, nome] = k.split('|');
-    const sessao = estado.sessoes.find(s => s.id === sid);
     status('#trial-info', 'Carregando trial…');
-    try {
-      const trial = await carregarTrial(sessao, nome);
-      if (!trial.trc) throw new Error('Este trial não tem MarkerData/' + nome + '.trc.');
-      const ant = [...estado.analises.values()].pop();  // herda local e inclinação do trial anterior
-      A = { k, sessao, trial, rotulo: nome,
-        cfg: { ambiente: ant?.cfg.ambiente || 'esteira', velEsteira: null, incl: ant?.cfg.incl ?? null, inclUn: ant?.cfg.inclUn || 'pct', atividade: '', metodo: '', janela: null, excluidos: null } };
-      estado.analises.set(k, A);
-      detectar(A);
-    } catch (err) { console.error(err); status('#trial-info', err.message, true); return; }
+    try { A = await prepararAnalise(k); }
+    catch (err) { console.error(err); status('#trial-info', err.message, true); return; }
   }
+  A.auto = false;
   preencherForm(A);
   await mostrarRevisao(A);
   recalcular();
+}
+
+async function prepararAnalise(k) {
+  let A = estado.analises.get(k);
+  if (A) return A;
+  const [sid, nome] = k.split('|');
+  const sessao = estado.sessoes.find(s => s.id === sid);
+  const trial = await carregarTrial(sessao, nome);
+  if (!trial.trc) throw new Error('Este trial não tem MarkerData/' + nome + '.trc.');
+  const ant = [...estado.analises.values()].pop();  // herda local e inclinação do trial anterior
+  A = { k, sessao, trial, rotulo: nome,
+    cfg: { ambiente: ant?.cfg.ambiente || 'esteira', velEsteira: null, incl: ant?.cfg.incl ?? null, inclUn: ant?.cfg.inclUn || 'pct', atividade: '', metodo: '', janela: null, excluidos: null } };
+  estado.analises.set(k, A);
+  detectar(A);
+  return A;
+}
+function calcularRes(A) {
+  const ativ = A.cfg.atividade || A.det.atividade;
+  A.res = analisar(A.trial, A.eventos, { ...A.cfg, atividade: ativ });
+  A.res.atividade = ativ; A.res.metodo = A.det.metodo;
+  if (!A.cfg.excluidos) A.cfg.excluidos = new Set(A.res.passadas.filter(p => p.excluida).map(p => p.id));
 }
 
 const inclPct = (c) => c.incl == null ? null : c.inclUn === 'grau' ? Math.tan(c.incl * Math.PI / 180) * 100 : c.incl;
@@ -346,10 +359,7 @@ let recalcTimer = null;
 function recalcular() { clearTimeout(recalcTimer); recalcTimer = setTimeout(recalcularJa, 80); }
 function recalcularJa() {
   const A = atual(); if (!A) return;
-  const ativ = A.cfg.atividade || A.det.atividade;
-  A.res = analisar(A.trial, A.eventos, { ...A.cfg, atividade: ativ });
-  A.res.atividade = ativ; A.res.metodo = A.det.metodo;
-  if (!A.cfg.excluidos) A.cfg.excluidos = new Set(A.res.passadas.filter(p => p.excluida).map(p => p.id));
+  calcularRes(A);
   mostrarResultados(A);
   montarSelTrial(); montarComparar();
   $('#s-comparar').hidden = false; $('#s-laudo').hidden = false;
@@ -413,15 +423,38 @@ function desenharCurvas(A) {
 // ---------------- 5. comparar ----------------
 const comparados = new Set();
 function montarComparar() {
-  const feitos = [...estado.analises.values()].filter(A => A.res);
-  $('#comp-lista').innerHTML = feitos.map(A => `<label class="radio"><input type="checkbox" data-c="${A.k}" ${comparados.has(A.k) ? 'checked' : ''}> ${esc(A.rotulo)} <span class="dica">(${esc(A.sessao.nome)})</span></label>`).join('') || '<span class="dica">Analise pelo menos dois trials.</span>';
-  $$('#comp-lista input').forEach(c => c.onchange = () => { c.checked ? comparados.add(c.dataset.c) : comparados.delete(c.dataset.c); desenharComparacao(); });
+  const html = estado.sessoes.map(s => {
+    const itens = s.trials.filter(t => s.files.has(`MarkerData/${t}.trc`)).map(t => {
+      const k = chave(s, t), A = estado.analises.get(k);
+      const marca = A?.res ? (A.auto ? ' <span class="dica">(automático)</span>' : ' ✓') : '';
+      return `<label class="radio"><input type="checkbox" data-c="${k}" ${comparados.has(k) ? 'checked' : ''}> ${esc(A?.rotulo || t)}${marca}</label>`;
+    }).join('');
+    return `<div class="comp-sessao"><div class="dica">${esc(s.nome)}</div><div class="comp-itens">${itens}</div></div>`;
+  }).join('');
+  $('#comp-lista').innerHTML = html;
+  $$('#comp-lista input').forEach(c => c.onchange = async () => {
+    const k = c.dataset.c;
+    if (!c.checked) { comparados.delete(k); desenharComparacao(); return; }
+    comparados.add(k);
+    let A = estado.analises.get(k);
+    if (!A?.res) {
+      $('#comp-saida').innerHTML = '<p class="status">Analisando o trial…</p>';
+      try { A = await prepararAnalise(k); A.auto = true; calcularRes(A); }
+      catch (err) { comparados.delete(k); c.checked = false; $('#comp-saida').innerHTML = `<p class="status erro">${esc(err.message)}</p>`; return; }
+      montarComparar(); montarSelTrial(); return;
+    }
+    desenharComparacao();
+  });
   desenharComparacao();
 }
 function selecionadosComparacao() { return [...comparados].map(k => estado.analises.get(k)).filter(A => A?.res); }
 function desenharComparacao() {
   const L = selecionadosComparacao(), out = $('#comp-saida');
-  if (L.length < 2) { out.innerHTML = ''; return; }
+  if (L.length < 2) { out.innerHTML = L.length ? '<p class="dica">Marque mais um trial para comparar.</p>' : ''; return; }
+  const avisos = [];
+  const auto = L.filter(A => A.auto).map(A => A.rotulo), semVel = L.filter(A => A.cfg.ambiente === 'esteira' && !A.cfg.velEsteira).map(A => A.rotulo);
+  if (auto.length) avisos.push(`Analisado(s) automaticamente, sem conferência dos eventos: <b>${auto.map(esc).join(', ')}</b>. Para conferir, escolha o trial no passo 2.`);
+  if (semVel.length) avisos.push(`Sem velocidade da esteira (velocidade e comprimentos ficam em branco): <b>${semVel.map(esc).join(', ')}</b>. Informe no passo 2.`);
   const vars = [['velocidade', 'Velocidade (m/s)', 2], ['cadencia', 'Cadência (passos/min)', 0], ['passada', 'Passada (m)', 2], ['largura', 'Largura do passo (cm)', 1], ['apoio', 'Tempo de apoio (s)', 3], ['apoioPct', 'Apoio (%)', 1], ['duplaPct', 'Duplo apoio (%)', 1], ['voo', 'Tempo de voo (s)', 3]];
   let h = `<table class="tab"><tr><th>Variável</th>${L.map((A, i) => `<th style="color:${PALETA[i % PALETA.length]}">${esc(A.rotulo)}</th>`).join('')}</tr>`;
   for (const [k, rot, d] of vars) {
@@ -434,7 +467,7 @@ function desenharComparacao() {
     if (!vis.curvas.includes(p.curva)) return;
     h += `<tr><td>${p.rotulo} (D / E)</td>${L.map(A => `<td>${fmt(A.res.pontos[idx].D, 0)} / ${fmt(A.res.pontos[idx].E, 0)}</td>`).join('')}</tr>`;
   });
-  out.innerHTML = h + '</table><p class="dica">Curvas: linha cheia = direito, tracejada = esquerdo.</p><div class="curvas" id="comp-curvas"></div>';
+  out.innerHTML = (avisos.length ? `<div class="alerta">${avisos.join('<br>')}</div>` : '') + h + '</table><p class="dica">Curvas: linha cheia = direito, tracejada = esquerdo.</p><div class="curvas" id="comp-curvas"></div>';
   const lista = ANGULOS.filter(a => vis.curvas.includes(a[0]));
   $('#comp-curvas').innerHTML = lista.map(([c]) => `<div class="curva" id="cc-${c}"></div>`).join('');
   for (const [c, rot] of lista) {
