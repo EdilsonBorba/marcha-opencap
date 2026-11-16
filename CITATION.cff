@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "Se usar esta ferramenta, cite-a assim."
+title: "Marcha OpenCap: análise de marcha e corrida a partir de dados do OpenCap"
+type: software
+authors:
+  - family-names: "Borba"
+    given-names: "Edilson Fernando de"
+    orcid: "https://orcid.org/0000-0002-9399-1098"
+    email: "borba.edi@gmail.com"
+repository-code: "https://github.com/EdilsonBorba/marcha-opencap"
+url: "https://edilsonborba.github.io/marcha-opencap/"
+license: MIT
+keywords: [gait analysis, running, OpenCap, OpenSim, markerless motion capture, biomechanics]
