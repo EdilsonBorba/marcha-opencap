@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24289782.svg)](https://doi.org/10.5281/zenodo.24289782)
 
-Ferramenta em português para analisar **marcha e corrida** a partir dos dados do [OpenCap](https://www.opencap.ai), pensada para uso clínico e em aula.
+Ferramenta em português para analisar **marcha e corrida** a partir dos dados do [OpenCap](https://www.opencap.ai).
 
 **Abrir:** https://edilsonborba.github.io/marcha-opencap/
 
