@@ -7,6 +7,7 @@ import { tracosCurva, tracosComparacao, setasEixo, PALETA } from './charts.js';
 import { criarTimeline } from './timeline.js';
 import { desenharEsqueleto } from './skeleton.js';
 import * as api from './api.js';
+import { CREDITOS } from './creditos.js';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -32,6 +33,15 @@ function montarPainelVis() {
 $$('[data-pre]').forEach(b => b.onclick = () => { vis.curvas = [...PREDEF[b.dataset.pre].curvas]; salvarVis(); montarPainelVis(); redesenharResultados(); });
 for (const k of ['pontos', 'setas', 'dp']) $('#vis-' + k).onchange = (e) => { vis[k] = e.target.checked; salvarVis(); redesenharResultados(); };
 montarPainelVis();
+{
+  const C = CREDITOS, l = [];
+  l.push(`Desenvolvido por <b>${C.autor}</b>`);
+  if (C.doi) l.push(`DOI <a href="https://doi.org/${C.doi}" target="_blank" rel="noopener">${C.doi}</a>`);
+  l.push(`<a href="${C.repositorio}" target="_blank" rel="noopener">repositório</a>`);
+  if (C.lattes) l.push(`<a href="${C.lattes}" target="_blank" rel="noopener">Lattes</a>`);
+  if (C.orcid) l.push(`<a href="${C.orcid}" target="_blank" rel="noopener">ORCID</a>`);
+  $('#creditos').innerHTML = l.join(' · ');
+}
 
 // ---------------- 1. carregar ----------------
 const drop = $('#drop');

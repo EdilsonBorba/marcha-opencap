@@ -1,5 +1,6 @@
 import { ANGULOS, VARS } from './gait.js';
 import { tracosCurva, tracosComparacao, setasEixo, PALETA } from './charts.js';
+import { CREDITOS } from './creditos.js';
 
 const f = (v, d = 1) => (v == null || !isFinite(v)) ? '-' : (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
 const CORES = { D: '#c62828', E: '#1f5fd6' };
@@ -32,8 +33,12 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
   const txt = (s, x, yy, o = {}) => { pdf.setFont('helvetica', o.b ? 'bold' : 'normal'); pdf.setFontSize(o.s || 10); pdf.setTextColor(o.c || '#1d1d1b'); pdf.text(String(s), x, yy, o.al ? { align: o.al } : undefined); };
   const linha = (yy) => { pdf.setDrawColor('#d8d5cc'); pdf.line(M, yy, W - M, yy); };
   const rodape = () => {
-    txt('Estimativas a partir de vídeo (OpenCap). Interpretar com julgamento clínico. TD = touchdown (pé toca o chão); TO = toe-off (dedos deixam o chão).', M, 284, { s: 7, c: '#777' });
-    txt('Eventos: ' + R.metodo + '.', M, 288, { s: 7, c: '#777' });
+    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6.5); pdf.setTextColor('#777');
+    const linhas = [
+      ...pdf.splitTextToSize('Valores estimados a partir de vídeo (OpenCap); interpretar com julgamento clínico. TD = touchdown (pé toca o chão); TO = toe-off (dedos deixam o chão). Eventos: ' + R.metodo + '.', W - 2 * M - 16),
+      `Ferramenta desenvolvida por ${CREDITOS.autor}${CREDITOS.doi ? ' · DOI ' + CREDITOS.doi : ''} · ${CREDITOS.repositorio.replace('https://', '')}`,
+    ];
+    pdf.text(linhas, M, 289 - (linhas.length - 1) * 3);
     txt(`Página ${pdf.getNumberOfPages()}`, W - M, 288, { s: 7, c: '#777', al: 'right' });
   };
 
