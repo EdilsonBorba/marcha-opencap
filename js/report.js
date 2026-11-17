@@ -61,7 +61,7 @@ export async function gerarPDF(A, D, comparacao, vis = null, extras = {}) {
   ];
   kp.forEach(([k, v], i) => { const x = M + i * 45; txt(k, x, y, { s: 7.5, c: '#777' }); txt(v, x, y + 6, { s: 13, b: true }); });
   const Vk = sem ? null : velocidadeTxt(A, f); if (Vk) txt(`(${Vk.kmh} km/h)`, M, y + 10.5, { s: 8, c: '#555' });
-  y += 15;
+  y += 18;
   if (R.atividade === 'corrida' && R.padrao?.D) { txt(`Padrão de contato no TD: D ${R.padrao.D.pred} (pé ${f(T.anguloPe?.D.m, 0)}°), E ${R.padrao.E?.pred ?? '-'} (pé ${f(T.anguloPe?.E.m, 0)}°) · Altman & Davis (2012)`, M, y, { s: 8.5 }); y += 6; }
   // achados
   const ach = A.achados || [];
@@ -159,8 +159,9 @@ export async function gerarPDF(A, D, comparacao, vis = null, extras = {}) {
     const P = extras.pegadas, Rm = P.resumo;
     pdf.addPage(); y = M;
     txt('Mapa de pegadas', M, y + 4, { s: 13, b: true });
-    txt(`Vista de cima, caminhando para a direita; cada pegada no meio do apoio. Tracejado = linha de progressão; linha fina = trajeto.${P.esteira ? ' Esteira: pegadas reconstruídas com a velocidade da lona.' : ''}`, M, y + 10, { s: 8, c: '#666' });
-    y += 17;
+    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor('#666');
+    const sub = pdf.splitTextToSize(tr('Vista de cima, caminhando para a direita; cada pegada no meio do apoio. Tracejado = linha de progressão; linha fina = trajeto.') + (P.esteira ? ' ' + tr('Esteira: pegadas reconstruídas com a velocidade da lona.') : ''), W - 2 * M);
+    pdf.text(sub, M, y + 10); y += 14 + 3.4 * sub.length;
     const ang = (l) => Rm[l].ang == null ? '-' : `${f(Rm[l].ang, 0)}°${Rm[l].angDp != null ? ' ± ' + f(Rm[l].angDp, 0) : ''}`;
     txt(`Ângulo de progressão do pé (+ = ponta para fora): D ${ang('D')} · E ${ang('E')}`, M, y, { s: 9 }); y += 5;
     txt(`Largura entre pegadas: ${Rm.largura == null ? '-' : f(Rm.largura * 100, 1) + ' cm'} · Desvio lateral da linha de progressão: máx ${Rm.desvioMax == null ? '-' : f(Rm.desvioMax * 100, 1) + ' cm'}, DP ${Rm.desvioDp == null ? '-' : f(Rm.desvioDp * 100, 1) + ' cm'}`, M, y, { s: 9 }); y += 6;
