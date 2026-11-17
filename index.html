@@ -28,16 +28,16 @@
   <h2><span class="n">1</span> Carregar a sessão do OpenCap</h2>
   <div class="entradas">
     <div id="drop" class="entrada drop">
-      <h3><span class="ic">📦</span>Arquivo do OpenCap</h3>
+      <h3><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>Arquivo do OpenCap</h3>
       <p class="desc">Arraste aqui o ZIP ou a pasta descompactada.</p>
-      <div class="corpo"><div class="alvo">⤓</div></div>
+      <div class="corpo"><div class="alvo"><svg class="ic-alvo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg></div></div>
       <div class="acoes dois"><button id="btn-zip" class="prim" title="Escolher o ZIP baixado do OpenCap">ZIP</button><button id="btn-pasta" title="Escolher a pasta descompactada">Pasta</button></div>
       <p class="dica">ZIP muito grande? Use a pasta: não há limite de tamanho.</p>
       <input id="in-zip" type="file" accept=".zip" multiple hidden>
       <input id="in-pasta" type="file" webkitdirectory multiple hidden>
     </div>
     <div class="entrada">
-      <h3><span class="ic">🗂️</span>Avaliação anterior</h3>
+      <h3><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>Avaliação anterior</h3>
       <p class="desc">Abra uma análise salva (.json) para revisar ou comparar.</p>
       <div class="corpo"></div>
       <div class="acoes"><button id="btn-abrir-analise" class="prim">Abrir análise (.json)</button></div>
@@ -45,7 +45,7 @@
       <input id="in-analise" type="file" accept=".json,application/json" multiple hidden>
     </div>
     <div class="entrada" id="bloco-api">
-      <h3><span class="ic">🔑</span>Conta do OpenCap</h3>
+      <h3><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/></svg>Conta do OpenCap</h3>
       <p class="desc">Entre e escolha a sessão e os trials.</p>
       <form id="form-login" autocomplete="on">
         <div class="corpo">
@@ -64,7 +64,7 @@
       <p class="dica">A senha vai direto para o OpenCap; aqui só fica o acesso temporário desta aba.</p>
     </div>
     <div class="entrada">
-      <h3><span class="ic">🔗</span>Sessão pública</h3>
+      <h3><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Sessão pública</h3>
       <p class="desc">Cole o link ou o ID da sessão.</p>
       <form id="form-publica">
         <div class="corpo"><input id="pub-id" placeholder="app.opencap.ai/session/…" aria-label="Link ou ID da sessão" autocomplete="off" required></div>
