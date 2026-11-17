@@ -20,6 +20,7 @@ const D = [
   ['Copiar Pix copia e cola', 'Copy Pix code'], ['Copiar chave Pix', 'Copy Pix key'], ['Chave aleatória', 'Random key'], ['Copiado!', 'Copied!'], ['Não consegui copiar; selecione a chave', 'Could not copy; select the key'], ['Fechar', 'Close'],
   ['Aponte a câmera do app do banco para o QR Code', 'Point your banking app camera at the QR code'],
   ['Análise de caminhada e corrida a partir dos dados do OpenCap', 'Walking and running analysis from OpenCap data'],
+  ['Aponte a câmera do celular para o QR Code', 'Point your phone camera at the QR code'],
   ['Arraste aqui o', 'Drop here the'], ['baixado do OpenCap', 'downloaded from OpenCap'], ['ou a pasta', 'or the unzipped'], [' descompactada.', ' folder.'],
   ['Escolher ZIP', 'Choose ZIP'], ['Escolher pasta', 'Choose folder'],
   ['Pode carregar várias sessões (ex.: antes e depois). ZIP muito grande? Use a pasta descompactada: não há limite de tamanho.', 'You can load several sessions (e.g., before and after). ZIP too large? Use the unzipped folder: there is no size limit.'],

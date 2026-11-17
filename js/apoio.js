@@ -49,10 +49,10 @@ export function iniciarApoio(botao) {
       </div>` : ''}
       ${A.kofi ? `<div class="apoio-op" data-op="kofi">
         <h4>Ko-fi <span class="dica">(internacional)</span></h4>
-        <div class="conteudo kofi"><p>Cartão ou PayPal, de qualquer país, em dólar.</p></div>
-        <div class="chave"></div>
+        <div class="conteudo"><div class="qr qr-kofi" aria-label="QR Code do Ko-fi"></div></div>
+        <div class="chave"><p>Cartão ou PayPal, de qualquer país, em dólar.</p></div>
         <a class="botao prim" href="${A.kofi}" target="_blank" rel="noopener">${ICONE_EXT}<span>Apoiar pelo Ko-fi</span></a>
-        <p class="dica">${A.kofi.replace('https://', '')}</p>
+        <p class="dica">Aponte a câmera do celular para o QR Code</p>
       </div>` : ''}
     </div>`;
   document.body.appendChild(dlg);
@@ -67,9 +67,11 @@ export function iniciarApoio(botao) {
   botao.onclick = async () => {
     dlg.classList.toggle('en', idioma() === 'en');   // em inglês, o Ko-fi vem primeiro
     dlg.showModal();
-    const alvo = dlg.querySelector('.qr');
-    if (alvo && !alvo.firstChild) {
-      try { const qr = (await carregarQR())(0, 'M'); qr.addData(codigo); qr.make(); alvo.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); }
+    // QR do Pix (código do banco) e do Ko-fi (link, para abrir no celular)
+    for (const [sel, txt] of [['.qr:not(.qr-kofi)', codigo], ['.qr-kofi', A.kofi]]) {
+      const alvo = dlg.querySelector(sel);
+      if (!alvo || alvo.firstChild || !txt) continue;
+      try { const qr = (await carregarQR())(0, 'M'); qr.addData(txt); qr.make(); alvo.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); }
       catch { alvo.remove(); }
     }
   };

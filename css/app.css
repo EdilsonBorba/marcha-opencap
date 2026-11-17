@@ -192,6 +192,7 @@ dialog.apoio.en [data-op="kofi"]{order:-1}
 .apoio-op p{margin:0;font-size:.88rem}
 .apoio-op .qr{background:#fff;border-radius:8px;padding:8px;width:150px;align-self:center}
 .apoio-op .qr svg{width:100%;height:auto;display:block}
+.apoio-op .chave p{font-size:.8rem;color:var(--mut)}
 .apoio-op .chave code{font-size:.72rem;word-break:break-all;color:var(--mut)}
 .apoio-op button,.apoio-op .botao{display:flex;justify-content:center;align-items:center;gap:8px;width:100%;box-sizing:border-box;font-size:.92rem;padding:8px 12px}
 .apoio-op .chave{min-height:1em}
