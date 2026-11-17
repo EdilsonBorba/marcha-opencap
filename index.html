@@ -28,37 +28,47 @@
   <h2><span class="n">1</span> Carregar a sessão do OpenCap</h2>
   <div class="entradas">
     <div id="drop" class="entrada drop">
-      <h3>Arquivo do OpenCap</h3>
-      <p>Arraste aqui o ZIP ou a pasta descompactada.</p>
-      <div class="linha"><button id="btn-zip" class="prim">Escolher ZIP</button><button id="btn-pasta">Escolher pasta</button></div>
+      <h3><span class="ic">📦</span>Arquivo do OpenCap</h3>
+      <p class="desc">Arraste aqui o ZIP ou a pasta descompactada.</p>
+      <div class="corpo"><div class="alvo">⤓</div></div>
+      <div class="acoes dois"><button id="btn-zip" class="prim" title="Escolher o ZIP baixado do OpenCap">ZIP</button><button id="btn-pasta" title="Escolher a pasta descompactada">Pasta</button></div>
       <p class="dica">ZIP muito grande? Use a pasta: não há limite de tamanho.</p>
       <input id="in-zip" type="file" accept=".zip" multiple hidden>
       <input id="in-pasta" type="file" webkitdirectory multiple hidden>
     </div>
     <div class="entrada">
-      <h3>Análise salva</h3>
-      <p>Abra um arquivo .json salvo antes (para comparar com avaliações anteriores).</p>
-      <div class="linha"><button id="btn-abrir-analise" class="prim">Abrir análise (.json)</button></div>
+      <h3><span class="ic">🗂️</span>Avaliação anterior</h3>
+      <p class="desc">Abra uma análise salva (.json) para revisar ou comparar.</p>
+      <div class="corpo"></div>
+      <div class="acoes"><button id="btn-abrir-analise" class="prim">Abrir análise (.json)</button></div>
+      <p class="dica">Funciona mesmo sem o ZIP; com o ZIP, volta a ser editável.</p>
       <input id="in-analise" type="file" accept=".json,application/json" multiple hidden>
     </div>
     <div class="entrada" id="bloco-api">
-      <h3>Conta do OpenCap</h3>
+      <h3><span class="ic">🔑</span>Conta do OpenCap</h3>
+      <p class="desc">Entre e escolha a sessão e os trials.</p>
       <form id="form-login" autocomplete="on">
-        <label>Usuário ou e-mail<input id="api-user" autocomplete="username" required></label>
-        <label>Senha<input id="api-senha" type="password" autocomplete="current-password" required></label>
-        <div class="linha"><button class="prim" type="submit">Entrar</button></div>
+        <div class="corpo">
+          <input id="api-user" autocomplete="username" placeholder="Usuário ou e-mail" aria-label="Usuário ou e-mail" required>
+          <input id="api-senha" type="password" autocomplete="current-password" placeholder="Senha" aria-label="Senha" required>
+        </div>
+        <div class="acoes"><button class="prim" type="submit">Entrar</button></div>
       </form>
       <div id="api-logado" hidden>
-        <div class="linha"><span id="api-quem" class="dica"></span><button id="api-sair" class="sec" type="button">Sair</button></div>
-        <label>Sessão<select id="api-sessoes"></select></label>
+        <div class="corpo">
+          <span id="api-quem" class="dica"></span>
+          <select id="api-sessoes" aria-label="Sessão"></select>
+        </div>
+        <div class="acoes"><button id="api-sair" type="button">Sair</button></div>
       </div>
       <p class="dica">A senha vai direto para o OpenCap; aqui só fica o acesso temporário desta aba.</p>
     </div>
     <div class="entrada">
-      <h3>Sessão pública</h3>
+      <h3><span class="ic">🔗</span>Sessão pública</h3>
+      <p class="desc">Cole o link ou o ID da sessão.</p>
       <form id="form-publica">
-        <label>Link ou ID da sessão<input id="pub-id" placeholder="app.opencap.ai/session/…" autocomplete="off" required></label>
-        <div class="linha"><button class="prim" type="submit">Abrir sessão</button></div>
+        <div class="corpo"><input id="pub-id" placeholder="app.opencap.ai/session/…" aria-label="Link ou ID da sessão" autocomplete="off" required></div>
+        <div class="acoes"><button class="prim" type="submit">Abrir sessão</button></div>
       </form>
       <p class="dica">Sem login: funciona com sessões marcadas como públicas no OpenCap.</p>
     </div>

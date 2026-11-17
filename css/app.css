@@ -149,14 +149,22 @@ kbd{font:11px ui-monospace,Menlo,monospace;border:1px solid var(--line);border-b
 button.perigo{color:var(--d);border-color:var(--d)}
 button.perigo.confirma{background:var(--d);color:#fff}
 
-/* passo 1: quatro formas de carregar, lado a lado */
-.entradas{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
-.entrada{border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px}
-.entrada h3{margin:0;font-size:1rem}
-.entrada p{margin:0}
-.entrada form{display:flex;flex-direction:column;gap:8px}
-.entrada.drop{border:2px dashed var(--line);text-align:left}
-.entrada.drop .linha{justify-content:flex-start}
-.entrada .linha{margin-top:auto}
+/* passo 1: quatro formas de carregar, lado a lado; subgrid alinha título, texto, campos, botões e nota entre os cartões */
+.entradas{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media (max-width:1000px){.entradas{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.entradas{grid-template-columns:1fr}}
+.entrada{display:grid;grid-row:span 5;grid-template-rows:subgrid;row-gap:10px;border:1px solid var(--line);border-radius:10px;padding:16px;text-align:left}
+.entrada form,.entrada #api-logado{display:contents}
+.entrada h3{margin:0;font-size:1rem;display:flex;align-items:center;gap:8px}
+.entrada .ic{font-size:1.1rem;line-height:1}
+.entrada .desc{margin:0;color:var(--fg);font-size:.9rem}
+.entrada .corpo{display:flex;flex-direction:column;gap:8px;justify-content:center;min-height:84px}
+.entrada .corpo input,.entrada .corpo select{width:100%;box-sizing:border-box}
+.entrada .acoes{display:grid;grid-template-columns:1fr;gap:8px;align-self:end}
+.entrada .acoes.dois{grid-template-columns:1fr 1fr}
+.entrada .acoes button{width:100%}
+.entrada > .dica{margin:0;font-size:.8rem;align-self:start}
+.entrada.drop{border:2px dashed var(--line)}
+.entrada.drop .alvo{flex:1;display:grid;place-items:center;border-radius:8px;background:var(--bg);color:var(--mut);font-size:1.6rem}
 .painel-trials{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:12px}
 [hidden]{display:none!important}
