@@ -35,7 +35,7 @@ const ICONE_EXT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 export function iniciarApoio(botao) {
   const A = CREDITOS.apoio; if (!A || (!A.pix && !A.kofi)) { botao.hidden = true; return; }
   const dlg = document.createElement('dialog'); dlg.className = 'apoio'; dlg.id = 'dlg-apoio';
-  const codigo = A.pix && A.pixCidade ? brCode(A) : null;
+  const codigo = A.pixCodigo || (A.pix && A.pixCidade ? brCode(A) : null);
   dlg.innerHTML = `
     <div class="apoio-cab"><h3>Me pague um café</h3><button class="fechar" type="button" aria-label="Fechar">×</button></div>
     <p class="dica">A ferramenta é gratuita e aberta. Se ela ajuda no seu trabalho, considere apoiar o desenvolvimento.</p>
@@ -45,7 +45,7 @@ export function iniciarApoio(botao) {
         ${codigo ? '<div class="qr" aria-label="QR Code do Pix"></div>' : ''}
         <div class="chave"><code>${A.pix}</code></div>
         <button type="button" class="prim copiar" data-txt="${codigo || A.pix}">${ICONE_COPIAR}<span>${codigo ? 'Copiar Pix copia e cola' : 'Copiar chave Pix'}</span></button>
-        <p class="dica">Chave aleatória</p>
+        <p class="dica">${codigo ? 'Aponte a câmera do app do banco para o QR Code' : 'Chave aleatória'}</p>
       </div>` : ''}
       ${A.kofi ? `<div class="apoio-op" data-op="kofi">
         <h4>Ko-fi <span class="dica">(internacional)</span></h4>

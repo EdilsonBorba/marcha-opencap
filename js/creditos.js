@@ -10,7 +10,9 @@ export const CREDITOS = {
   apoio: {
     pix: '2a5b4d70-dbe4-458a-aa2f-dfa7e6e75549',
     pixNome: 'EDILSON FERNANDO DE BORBA',
-    pixCidade: '',          // preencher para gerar o QR Code
+    pixCidade: 'SAO PAULO',
+    // código "copia e cola" gerado pelo banco: quando existe, é usado tal como está (QR e botão de copiar)
+    pixCodigo: '00020126580014BR.GOV.BCB.PIX01362a5b4d70-dbe4-458a-aa2f-dfa7e6e755495204000053039865802BR5925Edilson Fernando de Borba6009SAO PAULO62140510LWKs5EkWzK6304F4C4',
     kofi: 'https://ko-fi.com/edilsonborba',
   },
 };
