@@ -27,6 +27,14 @@ Tudo roda no navegador: os arquivos do paciente **não são enviados** a nenhum 
 14. Gera **laudo em PDF** (com caixa de **achados** automáticos: assimetrias ≥ 10 %, variabilidade, qualidade do rastreamento) e **Excel** com todos os dados.
 15. **Salva a análise** num arquivo `.json` (marcações, ajustes e resultados). Para comparar depois, basta abrir o arquivo, mesmo sem o ZIP; com o ZIP, tudo volta a ficar editável.
 
+## Privacidade: o que fica no seu computador
+- **ZIP ou pasta:** lidos direto do seu disco, só na memória da aba.
+- **Conta do OpenCap (API):** cada arquivo (.mot, .trc, vídeos, modelo) é buscado direto do OpenCap quando você abre o trial e fica **só na memória da aba**: nada é gravado como arquivo e nada passa por outro servidor. Fechou ou recarregou a aba, some.
+- **Login:** a senha vai direto para o OpenCap e não é guardada; o *token* de acesso fica no `sessionStorage` da aba e é apagado ao fechá-la (ou ao sair).
+- **Guardado no navegador:** só as preferências de exibição e o idioma (`localStorage`); nenhum dado de paciente.
+- **Cache:** como em qualquer site, o navegador pode manter cópias temporárias (sobretudo vídeos). Em computador compartilhado, use janela anônima ou limpe o cache.
+- **Só é salvo se você pedir:** laudo PDF, Excel e análise `.json` (vão para Downloads). O `.json` contém o nome do paciente: guarde com cuidado.
+
 ## Sobre os eventos (TD e TO)
 A detecção é automática e você escolhe o método:
 - **Marcha:** posição do pé em relação ao sacro (Zeni et al., 2008).

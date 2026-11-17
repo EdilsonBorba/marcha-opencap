@@ -27,6 +27,14 @@ Everything runs in the browser: patient files are **never uploaded** to any serv
 14. Generates a **PDF report** (with an automatic **findings** box: asymmetries ≥ 10 %, variability, tracking quality) and an **Excel** file with all data.
 15. **Saves the analysis** to a `.json` file (marks, settings and results). To compare later, just open the file, even without the ZIP; with the ZIP, everything becomes editable again.
 
+## Privacy: what stays on your computer
+- **ZIP or folder:** read straight from your disk, in the tab's memory only.
+- **OpenCap account (API):** each file (.mot, .trc, videos, model) is fetched directly from OpenCap when you open the trial and is kept **only in the tab's memory**: nothing is written to disk and nothing goes through any other server. Close or reload the tab and it is gone.
+- **Login:** the password goes straight to OpenCap and is not stored; the access *token* is kept in the tab's `sessionStorage` and erased when the tab closes (or when you sign out).
+- **Stored in the browser:** only display preferences and language (`localStorage`); no patient data.
+- **Cache:** as with any website, the browser may keep temporary copies (especially videos). On a shared computer, use a private window or clear the cache.
+- **Saved only when you ask:** PDF report, Excel and `.json` analysis (to Downloads). The `.json` contains the patient's name: keep it safe.
+
 ## About the events (TD and TO)
 Detection is automatic and you choose the method:
 - **Walking:** foot position relative to the sacrum (Zeni et al., 2008).
