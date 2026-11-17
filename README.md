@@ -11,7 +11,7 @@ A tool to analyze **walking and running** from [OpenCap](https://www.opencap.ai)
 Everything runs in the browser: patient files are **never uploaded** to any server.
 
 ## What it does
-1. Reads the **ZIP** downloaded from OpenCap, the unzipped **folder** (no size limit), or loads directly from your **OpenCap account** (login, experimental).
+1. Reads the **ZIP** downloaded from OpenCap, the unzipped **folder** (no size limit), loads directly from your **OpenCap account** (login), or opens a **public session** from its link or ID, no login needed.
 2. Detects **TD** (*touchdown*: the foot touches the ground) and **TO** (*toe-off*: the toes leave the ground) events, which you **check and edit** on the video and on the 3D skeleton.
 3. **Low-pass filter** for all data (zero-lag 4th-order Butterworth; automatic 6 Hz walking / 10 Hz running, editable, or off).
 4. Detects the **steady window** (removes treadmill acceleration and overground start/end).
@@ -29,7 +29,7 @@ Everything runs in the browser: patient files are **never uploaded** to any serv
 
 ## Privacy: what stays on your computer
 - **ZIP or folder:** read straight from your disk, in the tab's memory only.
-- **OpenCap account (API):** each file (.mot, .trc, videos, model) is fetched directly from OpenCap when you open the trial and is kept **only in the tab's memory**: nothing is written to disk and nothing goes through any other server. Close or reload the tab and it is gone.
+- **OpenCap account or public session (API):** each file (.mot, .trc, videos, model) is fetched directly from OpenCap when you open the trial and is kept **only in the tab's memory**: nothing is written to disk and nothing goes through any other server. Close or reload the tab and it is gone.
 - **Login:** the password goes straight to OpenCap and is not stored; the access *token* is kept in the tab's `sessionStorage` and erased when the tab closes (or when you sign out).
 - **Stored in the browser:** only display preferences and language (`localStorage`); no patient data.
 - **Cache:** as with any website, the browser may keep temporary copies (especially videos). On a shared computer, use a private window or clear the cache.

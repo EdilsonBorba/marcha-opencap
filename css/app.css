@@ -148,3 +148,15 @@ kbd{font:11px ui-monospace,Menlo,monospace;border:1px solid var(--line);border-b
 .glossario{background:var(--bg);border-left:3px solid var(--acc);padding:8px 12px;border-radius:6px;font-size:.88rem;margin:8px 0}
 button.perigo{color:var(--d);border-color:var(--d)}
 button.perigo.confirma{background:var(--d);color:#fff}
+
+/* passo 1: quatro formas de carregar, lado a lado */
+.entradas{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.entrada{border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.entrada h3{margin:0;font-size:1rem}
+.entrada p{margin:0}
+.entrada form{display:flex;flex-direction:column;gap:8px}
+.entrada.drop{border:2px dashed var(--line);text-align:left}
+.entrada.drop .linha{justify-content:flex-start}
+.entrada .linha{margin-top:auto}
+.painel-trials{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:12px}
+[hidden]{display:none!important}

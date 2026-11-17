@@ -99,7 +99,7 @@ $('#form-login').onsubmit = async (e) => {
     await listarAPI();
   } catch (err) { status('#api-status', 'Falha de conexão com o OpenCap: ' + err.message, true); diag('login: ' + err.message); }
 };
-$('#api-sair').onclick = () => { api.sair(); $('#api-logado').hidden = true; $('#form-login').hidden = false; status('#api-status', 'Você saiu da conta.'); };
+$('#api-sair').onclick = () => { api.sair(); $('#api-logado').hidden = true; $('#painel-trials').hidden = true; $('#form-login').hidden = false; status('#api-status', 'Você saiu da conta.'); };
 async function listarAPI() {
   status('#api-status', 'Buscando suas sessões…');
   try {
@@ -111,16 +111,31 @@ async function listarAPI() {
     status('#api-status', 'Escolha a sessão.');
   } catch (err) { status('#api-status', 'Não consegui listar as sessões: ' + err.message, true); diag({ sessoes: err.status, corpo: err.corpo }); if (err.status === 401) api.sair(); }
 }
-$('#api-sessoes').onchange = async (e) => {
-  $('#api-trials').innerHTML = ''; if (!e.target.value) return;
+// lista os trials de uma sessão (da conta ou pública) no painel comum
+async function abrirSessaoAPI(id, origem) {
+  $('#api-trials').innerHTML = ''; $('#painel-trials').hidden = true; if (!id) return;
   status('#api-status', 'Lendo a sessão…');
   try {
-    const s = await api.sessao(e.target.value);
+    const s = await api.sessao(id);
     const ts = api.trialsDeMovimento(s);
+    $('#pt-titulo').textContent = `${origem} · ${s.name || 'sessão'}`;
     $('#api-trials').innerHTML = ts.map(t => `<label class="radio"><input type="checkbox" data-t="${t.id}" checked> ${esc(t.name)}</label>`).join('') || '<span class="dica">Sem trials processados.</span>';
     $('#api-trials').dataset.sessao = JSON.stringify({ id: s.id, name: s.name, trials: s.trials, meta: s.meta ? { neutral_trial: s.meta.neutral_trial } : null });
+    $('#painel-trials').hidden = false;
     status('#api-status', `${ts.length} trials. Marque os que quer analisar.`);
-  } catch (err) { status('#api-status', 'Não consegui ler a sessão: ' + err.message, true); diag({ sessao: err.status, corpo: err.corpo }); }
+  } catch (err) {
+    const msg = err.status === 404 || err.status === 401 || err.status === 403
+      ? (api.token() ? 'Sessão não encontrada ou sem acesso.' : 'Sessão não encontrada ou não é pública. No OpenCap, marque a sessão como pública ou entre com a conta.')
+      : 'Não consegui ler a sessão: ' + err.message;
+    status('#api-status', msg, true); diag({ sessao: err.status, corpo: err.corpo });
+  }
+}
+$('#api-sessoes').onchange = (e) => abrirSessaoAPI(e.target.value, 'Conta do OpenCap');
+$('#form-publica').onsubmit = (e) => {
+  e.preventDefault();
+  const m = $('#pub-id').value.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  if (!m) { status('#api-status', 'Não encontrei um ID de sessão válido (formato xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).', true); return; }
+  abrirSessaoAPI(m[0].toLowerCase(), 'Sessão pública');
 };
 $('#api-carregar').onclick = async () => {
   const s = JSON.parse($('#api-trials').dataset.sessao || 'null'); if (!s) return;
@@ -139,15 +154,16 @@ $('#api-carregar').onclick = async () => {
   } catch (err) { console.error(err); status('#api-status', 'Erro ao carregar: ' + err.message, true); diag({ carregar: err.message, corpo: err.corpo }); }
 };
 $$('[data-todos]').forEach(b => b.onclick = () => $$('#' + b.dataset.todos + ' input[type=checkbox]').forEach(c => c.checked = b.dataset.v === '1'));
-if (api.token()) { $('#bloco-api').open = true; listarAPI(); }
+if (api.token()) listarAPI();
 
 // ---------------- 2. trial ----------------
+const sessaoDe = (k) => estado.sessoes.find(s => s.id === k.split('|')[0]);
 async function selecionar(k) {
   $('#sel-trial').value = k; pausar();
   estado.atual = k;
   let A = estado.analises.get(k);
   if (!A) {
-    status('#trial-info', 'Carregando trial…');
+    status('#trial-info', sessaoDe(k)?.origem === 'api' ? 'Baixando o trial do OpenCap… (pode levar até 1 minuto)' : 'Carregando trial…');
     try { A = await prepararAnalise(k); }
     catch (err) { console.error(err); status('#trial-info', err.message, true); return; }
   }

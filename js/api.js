@@ -30,7 +30,10 @@ export const sessao = (id) => req(`sessions/${id}/`);
 export const trial = (id) => req(`trials/${id}/`);
 
 const IGNORAR = /^(calibration|neutral)$/i;
-export const trialsDeMovimento = (s) => (s.trials || []).filter(t => !IGNORAR.test(t.name) && t.status !== 'error');
+// Usa o trial se ele tem cinemática (ik_results), mesmo com status "error": o OpenCap às vezes marca erro
+// numa etapa posterior (ex.: reprocessamento) e os resultados continuam válidos.
+const temIK = (t) => (t.results || []).some(r => r.tag === 'ik_results');
+export const trialsDeMovimento = (s) => (s.trials || []).filter(t => !IGNORAR.test(t.name) && !t.trashed && (temIK(t) || (!t.results && t.status === 'done')));
 
 const resultado = (t, tag) => (t.results || []).find(r => r.tag === tag)?.media;
 
@@ -60,5 +63,5 @@ export async function montarSessaoAPI(s, trialsEscolhidos, aoProgresso = () => {
   if (files.has('sessionMetadata.yaml')) {
     try { const y = await files.get('sessionMetadata.yaml').text(); const n = (c) => { const m = y.match(new RegExp('^' + c + ':\\s*([0-9.]+)', 'm')); return m ? +m[1] : null; }; const sx = ((y.match(/^gender_mf:\s*(\S+)/m) || [])[1] || '').toLowerCase(); meta = { altura: n('height_m'), massa: n('mass_kg'), idade: n('age'), sexo: sx.startsWith('m') ? 'M' : sx.startsWith('f') ? 'F' : '' }; } catch (e) { diag.push({ metadados: 'falhou: ' + e.message }); }
   }
-  return { id: crypto.randomUUID(), nome: s.name || ('Sessão ' + String(s.id).slice(0, 8)), files, trials, meta, cams: [...cams].sort(), diag };
+  return { origem: 'api', id: crypto.randomUUID(), nome: s.name || ('Sessão ' + String(s.id).slice(0, 8)), files, trials, meta, cams: [...cams].sort(), diag };
 }

@@ -11,7 +11,7 @@ Ferramenta para analisar **marcha e corrida** a partir dos dados do [OpenCap](ht
 Tudo roda no navegador: os arquivos do paciente **não são enviados** a nenhum servidor.
 
 ## O que faz
-1. Lê o **ZIP** baixado do OpenCap, a **pasta** descompactada (sem limite de tamanho) ou carrega direto da **conta do OpenCap** (login, experimental).
+1. Lê o **ZIP** baixado do OpenCap, a **pasta** descompactada (sem limite de tamanho), carrega direto da **conta do OpenCap** (login) ou abre uma **sessão pública** só com o link ou o ID, sem login.
 2. Detecta os eventos **TD** (*touchdown*: o pé toca o chão) e **TO** (*toe-off*: os dedos deixam o chão), que você **confere e edita** no vídeo e no esqueleto 3D.
 3. **Filtro passa-baixa** em todos os dados (Butterworth de 4ª ordem sem defasagem; automático 6 Hz marcha / 10 Hz corrida, editável ou desligado).
 4. Detecta o **trecho estável** (tira a aceleração da esteira e o início/fim no solo).
@@ -29,7 +29,7 @@ Tudo roda no navegador: os arquivos do paciente **não são enviados** a nenhum 
 
 ## Privacidade: o que fica no seu computador
 - **ZIP ou pasta:** lidos direto do seu disco, só na memória da aba.
-- **Conta do OpenCap (API):** cada arquivo (.mot, .trc, vídeos, modelo) é buscado direto do OpenCap quando você abre o trial e fica **só na memória da aba**: nada é gravado como arquivo e nada passa por outro servidor. Fechou ou recarregou a aba, some.
+- **Conta do OpenCap ou sessão pública (API):** cada arquivo (.mot, .trc, vídeos, modelo) é buscado direto do OpenCap quando você abre o trial e fica **só na memória da aba**: nada é gravado como arquivo e nada passa por outro servidor. Fechou ou recarregou a aba, some.
 - **Login:** a senha vai direto para o OpenCap e não é guardada; o *token* de acesso fica no `sessionStorage` da aba e é apagado ao fechá-la (ou ao sair).
 - **Guardado no navegador:** só as preferências de exibição e o idioma (`localStorage`); nenhum dado de paciente.
 - **Cache:** como em qualquer site, o navegador pode manter cópias temporárias (sobretudo vídeos). Em computador compartilhado, use janela anônima ou limpe o cache.

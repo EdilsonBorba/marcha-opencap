@@ -26,38 +26,51 @@
 <main>
 <section id="s-carregar" class="card">
   <h2><span class="n">1</span> Carregar a sessão do OpenCap</h2>
-  <div id="drop" class="drop">
-    <p>Arraste aqui o <b>ZIP</b> baixado do OpenCap <b>ou a pasta</b> descompactada.</p>
-    <div class="linha">
-      <button id="btn-zip" class="prim">Escolher ZIP</button>
-      <button id="btn-pasta">Escolher pasta</button>
+  <div class="entradas">
+    <div id="drop" class="entrada drop">
+      <h3>Arquivo do OpenCap</h3>
+      <p>Arraste aqui o ZIP ou a pasta descompactada.</p>
+      <div class="linha"><button id="btn-zip" class="prim">Escolher ZIP</button><button id="btn-pasta">Escolher pasta</button></div>
+      <p class="dica">ZIP muito grande? Use a pasta: não há limite de tamanho.</p>
+      <input id="in-zip" type="file" accept=".zip" multiple hidden>
+      <input id="in-pasta" type="file" webkitdirectory multiple hidden>
     </div>
-    <p class="dica">Pode carregar várias sessões (ex.: antes e depois). ZIP muito grande? Use a pasta descompactada: não há limite de tamanho.</p>
-    <div class="linha"><button id="btn-abrir-analise" class="sec">Abrir análise salva (.json)</button></div>
-    <input id="in-analise" type="file" accept=".json,application/json" multiple hidden>
-    <input id="in-zip" type="file" accept=".zip" multiple hidden>
-    <input id="in-pasta" type="file" webkitdirectory multiple hidden>
-  </div>
-  <details id="bloco-api" class="bloco-api">
-    <summary><b>Ou entre com a sua conta do OpenCap</b> <span class="dica">(experimental · escolha a sessão e os trials sem baixar o ZIP)</span></summary>
-    <form id="form-login" class="grade-form" autocomplete="on">
-      <label>Usuário ou e-mail do OpenCap<input id="api-user" autocomplete="username" required></label>
-      <label>Senha<input id="api-senha" type="password" autocomplete="current-password" required></label>
-      <div class="linha"><button class="prim" type="submit">Entrar</button></div>
-    </form>
-    <p class="dica">A senha vai direto para o OpenCap (api.opencap.ai). Esta página guarda só o acesso temporário, nesta aba, e esquece ao fechar.</p>
-    <div id="api-logado" hidden>
-      <div class="linha"><span id="api-quem" class="dica"></span><button id="api-sair" class="sec" type="button">Sair</button></div>
-      <div class="grade-form">
+    <div class="entrada">
+      <h3>Análise salva</h3>
+      <p>Abra um arquivo .json salvo antes (para comparar com avaliações anteriores).</p>
+      <div class="linha"><button id="btn-abrir-analise" class="prim">Abrir análise (.json)</button></div>
+      <input id="in-analise" type="file" accept=".json,application/json" multiple hidden>
+    </div>
+    <div class="entrada" id="bloco-api">
+      <h3>Conta do OpenCap</h3>
+      <form id="form-login" autocomplete="on">
+        <label>Usuário ou e-mail<input id="api-user" autocomplete="username" required></label>
+        <label>Senha<input id="api-senha" type="password" autocomplete="current-password" required></label>
+        <div class="linha"><button class="prim" type="submit">Entrar</button></div>
+      </form>
+      <div id="api-logado" hidden>
+        <div class="linha"><span id="api-quem" class="dica"></span><button id="api-sair" class="sec" type="button">Sair</button></div>
         <label>Sessão<select id="api-sessoes"></select></label>
       </div>
-      <div class="linha"><button type="button" class="sec" data-todos="api-trials" data-v="1">Marcar todos</button><button type="button" class="sec" data-todos="api-trials" data-v="0">Desmarcar todos</button></div>
-      <div id="api-trials" class="lista-trials"></div>
-      <div class="linha"><button id="api-carregar" class="prim" type="button">Carregar trials marcados</button></div>
+      <p class="dica">A senha vai direto para o OpenCap; aqui só fica o acesso temporário desta aba.</p>
     </div>
-    <p id="api-status" class="status"></p>
-    <details class="diag"><summary class="dica">Diagnóstico (para conferir a conexão)</summary><pre id="api-diag" class="mono"></pre></details>
-  </details>
+    <div class="entrada">
+      <h3>Sessão pública</h3>
+      <form id="form-publica">
+        <label>Link ou ID da sessão<input id="pub-id" placeholder="app.opencap.ai/session/…" autocomplete="off" required></label>
+        <div class="linha"><button class="prim" type="submit">Abrir sessão</button></div>
+      </form>
+      <p class="dica">Sem login: funciona com sessões marcadas como públicas no OpenCap.</p>
+    </div>
+  </div>
+  <div id="painel-trials" class="painel-trials" hidden>
+    <div class="linha"><b id="pt-titulo">Trials</b><button type="button" class="sec" data-todos="api-trials" data-v="1">Marcar todos</button><button type="button" class="sec" data-todos="api-trials" data-v="0">Desmarcar todos</button></div>
+    <div id="api-trials" class="lista-trials"></div>
+    <div class="linha"><button id="api-carregar" class="prim" type="button">Carregar trials marcados</button></div>
+  </div>
+  <p id="api-status" class="status"></p>
+  <details class="diag"><summary class="dica">Diagnóstico da conexão com o OpenCap</summary><pre id="api-diag" class="mono"></pre></details>
+  <p class="dica">Pode carregar várias sessões (ex.: antes e depois), de qualquer origem.</p>
   <p id="carregar-status" class="status"></p>
   <ul id="lista-sessoes" class="sessoes"></ul>
 </section>
