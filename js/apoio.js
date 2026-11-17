@@ -42,14 +42,15 @@ export function iniciarApoio(botao) {
     <div class="apoio-opcoes">
       ${A.pix ? `<div class="apoio-op" data-op="pix">
         <h4>Pix <span class="dica">(Brasil)</span></h4>
-        ${codigo ? '<div class="qr" aria-label="QR Code do Pix"></div>' : ''}
+        <div class="conteudo">${codigo ? '<div class="qr" aria-label="QR Code do Pix"></div>' : ''}</div>
         <div class="chave"><code>${A.pix}</code></div>
         <button type="button" class="prim copiar" data-txt="${codigo || A.pix}">${ICONE_COPIAR}<span>${codigo ? 'Copiar Pix copia e cola' : 'Copiar chave Pix'}</span></button>
         <p class="dica">${codigo ? 'Aponte a câmera do app do banco para o QR Code' : 'Chave aleatória'}</p>
       </div>` : ''}
       ${A.kofi ? `<div class="apoio-op" data-op="kofi">
         <h4>Ko-fi <span class="dica">(internacional)</span></h4>
-        <p>Cartão ou PayPal, de qualquer país, em dólar.</p>
+        <div class="conteudo kofi"><p>Cartão ou PayPal, de qualquer país, em dólar.</p></div>
+        <div class="chave"></div>
         <a class="botao prim" href="${A.kofi}" target="_blank" rel="noopener">${ICONE_EXT}<span>Apoiar pelo Ko-fi</span></a>
         <p class="dica">${A.kofi.replace('https://', '')}</p>
       </div>` : ''}
