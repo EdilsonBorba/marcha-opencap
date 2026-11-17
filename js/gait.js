@@ -394,6 +394,15 @@ export function analisar(trial, ev, cfg) {
   return resumir(trial, passadas, cfg, { fs, vEst, d, i0, i1 });
 }
 
+// Velocidade nas duas unidades sem ida e volta por valor arredondado: na esteira, o km/h é o valor digitado
+// (com as casas decimais que a pessoa usou); o m/s vem dele. No solo, o km/h vem do m/s exato.
+export function velocidadeTxt(A, fmt) {
+  const v = A?.res?.tab?.velocidade?.geral?.m; if (v == null || !isFinite(v)) return null;
+  const est = A.cfg.ambiente === 'esteira' && A.cfg.velEsteira;
+  const casas = est ? Math.min(2, Math.max(1, (String(A.cfg.velEsteira).split('.')[1] || '').length)) : 1;
+  return { ms: fmt(v, 2), kmh: fmt(est ? +A.cfg.velEsteira : v * 3.6, casas), casasKmh: casas };
+}
+
 const VARS = [
   ['velocidade', 'Velocidade', 'm/s', 2],
   ['cadencia', 'Cadência', 'passos/min', 0],

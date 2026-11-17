@@ -157,7 +157,7 @@ const D = [
   ['Ferramenta desenvolvida por', 'Tool developed by'], ['Faixa cinza = normalidade (média ± 1 DP), adultos saudáveis', 'Gray band = normative (mean ± 1 SD), healthy adults'], ['Dados de laboratório com marcadores.', 'Marker-based laboratory data.'],
   ['Curvas ao longo do ciclo', 'Curves over the cycle'], ['graus', 'degrees'], ['Sessão', 'Session'], ['Esteira', 'Treadmill'],
   // Excel
-  ['Velocidade da esteira (km/h)', 'Treadmill speed (km/h)'], ['Método de eventos', 'Event method'], ['Trecho analisado (s)', 'Analyzed window (s)'], ['Unidade', 'Unit'],
+  ['Velocidade da esteira (km/h)', 'Treadmill speed (km/h)'], ['Velocidade média (km/h)', 'Mean speed (km/h)'], ['Método de eventos', 'Event method'], ['Trecho analisado (s)', 'Analyzed window (s)'], ['Unidade', 'Unit'],
   ['Direito média', 'Right mean'], ['Direito DP', 'Right SD'], ['Direito n', 'Right n'], ['Esquerdo média', 'Left mean'], ['Esquerdo DP', 'Left SD'], ['Esquerdo n', 'Left n'], ['Simetria %', 'Symmetry %'], ['Geral média', 'Overall mean'], ['Geral DP', 'Overall SD'],
   ['Ponto-chave (graus)', 'Key point (degrees)'], ['Lado', 'Side'], ['Usada', 'Used'], ['Suspeita', 'Suspect'], ['Início (s)', 'Start (s)'], ['Duração (s)', 'Duration (s)'], ['Apoio (s)', 'Stance (s)'], ['Apoio %', 'Stance %'], ['Balanço (s)', 'Swing (s)'],
   ['Tempo do passo (s)', 'Step time (s)'], ['Duplo apoio %', 'Double support %'], ['Voo (s)', 'Flight (s)'], ['Passada (m)', 'Stride (m)'], ['Passo (m)', 'Step (m)'], ['Largura (cm)', 'Width (cm)'],

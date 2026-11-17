@@ -1,4 +1,4 @@
-import { ANGULOS, VARS } from './gait.js';
+import { ANGULOS, VARS, velocidadeTxt } from './gait.js';
 
 // Linhas da tabela de comparação, seguindo as escolhas de "O que mostrar" (mesmas variáveis e pontos-chave da análise).
 // fmt(valor, casas) formata; devolve [{ rotulo, valores: [texto por trial] }]
@@ -9,6 +9,7 @@ export function linhasComparacao(L, vis, fmt) {
     const tem = L.some(A => A.res.tab[k]?.geral?.m != null);
     if (!tem) continue;
     const porLado = !['velocidade', 'cadencia'].includes(k);
+    if (k === 'velocidade') { out.push({ rotulo: `${rot} (m/s · km/h)`, valores: L.map(A => { const V = velocidadeTxt(A, fmt); return V ? `${V.ms} · ${V.kmh}` : '–'; }) }); continue; }
     out.push({ rotulo: `${rot} (${u})${porLado ? ' · D / E' : ''}`, valores: L.map(A => {
       const v = A.res.tab[k]; if (!v) return '–';
       return porLado && v.D?.m != null && v.E?.m != null ? `${fmt(v.D.m, d)} / ${fmt(v.E.m, d)}` : fmt(v.geral?.m, d);

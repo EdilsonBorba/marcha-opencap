@@ -2,7 +2,7 @@ import { abrirZip, abrirArquivosDePasta, lerItensArrastados, carregarTrial, urlV
 import { calcularAchados } from './achados.js';
 import { lerModelo, cinematica, valoresDoMot, centroMassa } from './model.js';
 import { criarVisor3D } from './viewer3d.js';
-import { detectarEventos, analisar, trechoEstavel, filtrarTrial, referenciaPe, pontosNormais, ANGULOS, VARS, PREDEF, unidade } from './gait.js';
+import { detectarEventos, analisar, trechoEstavel, filtrarTrial, velocidadeTxt, referenciaPe, pontosNormais, ANGULOS, VARS, PREDEF, unidade } from './gait.js';
 import { gerarPDF, gerarExcel } from './report.js';
 import { tracosCurva, tracosComparacao, setasEixo, PALETA, linhasComparacao } from './charts.js';
 import { criarTimeline } from './timeline.js';
@@ -481,7 +481,7 @@ function mostrarResultados(A) {
   const kpi = (rot, v, u, r = '') => `<div class="kpi"><div class="u">${rot}</div><div class="v">${v}</div><div class="r">${u}${r ? ' · ' + r : ''}</div></div>`;
   const si = (x) => x == null ? '' : `simetria ${x > 0 ? '+' : ''}${fmt(x, 1)}%`;
   $('#cards').innerHTML = (sem ? `<div class="alerta" style="grid-column:1/-1">Informe a <b>velocidade da esteira</b> (passo 2) para calcular velocidade e comprimentos.</div>` : '') + [
-    sem ? '' : kpi('Velocidade', fmt(T.velocidade.geral.m, 2), 'm/s', A.cfg.ambiente === 'esteira' ? `esteira ${fmt(A.cfg.velEsteira, 1)} km/h` : ''),
+    sem ? '' : (() => { const V = velocidadeTxt(A, fmt); return kpi('Velocidade', V?.ms ?? '–', 'm/s', V ? `${V.kmh} km/h${A.cfg.ambiente === 'esteira' ? ' (esteira)' : ''}` : ''); })(),
     kpi('Cadência', fmt(T.cadencia.geral.m, 0), 'passos/min'),
     sem ? '' : kpi('Passada', fmt(T.passada.geral.m, 2), 'm', `CV ${fmt(T.passada.geral.cv, 1)}%`),
     R.atividade === 'corrida'
@@ -495,7 +495,7 @@ function mostrarResultados(A) {
   for (const [k, rot, u, d] of VARS) {
     const v = T[k]; if (!v || !vis.vars.includes(k)) continue;
     if (sem && ['velocidade', 'passada', 'passo'].includes(k)) continue;
-    if (k === 'velocidade' || k === 'cadencia') { h += `<tr><td>${rot} <span class="dica">${u}</span></td><td colspan="2" style="text-align:center">${fmt(v.geral.m, d)}</td><td></td><td></td></tr>`; continue; }
+    if (k === 'velocidade' || k === 'cadencia') { const V = k === 'velocidade' ? velocidadeTxt(A, fmt) : null; h += `<tr><td>${rot} <span class="dica">${u}</span></td><td colspan="2" style="text-align:center">${V ? `${V.ms} <span class="dica">(${V.kmh} km/h)</span>` : fmt(v.geral.m, d)}</td><td></td><td></td></tr>`; continue; }
     const mdp = (x) => x.m == null ? '–' : `${fmt(x.m, d)}${x.dp != null ? ' <span class="dica">± ' + fmt(x.dp, d) + '</span>' : ''}`;
     const a = v.si == null ? '–' : `<span class="${Math.abs(v.si) >= 10 ? 'assim' : ''}">${v.si > 0 ? '+' : ''}${fmt(v.si, 1)}%</span>`;
     h += `<tr><td>${rot} <span class="dica">${u}</span></td><td>${mdp(v.D)}</td><td>${mdp(v.E)}</td><td>${a}</td><td>${v.geral.cv == null ? '–' : fmt(v.geral.cv, 1) + '%'}</td></tr>`;

@@ -1,4 +1,4 @@
-import { ANGULOS, VARS, unidade, pontosNormais } from './gait.js';
+import { ANGULOS, VARS, unidade, pontosNormais, velocidadeTxt } from './gait.js';
 import { tracosCurva, tracosComparacao, setasEixo, PALETA, linhasComparacao } from './charts.js';
 import { CREDITOS } from './creditos.js';
 import { tr, locale } from './i18n.js';
@@ -47,7 +47,7 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
   txt(`Relatório de análise da ${R.atividade === 'corrida' ? 'corrida' : 'marcha'}`, M, y + 5, { s: 16, b: true }); y += 12;
   const cab = [
     ['Paciente', D.paciente || '-'], ['Data', dataBR(D.data) || '-'], ['Avaliador(a)', D.avaliador || '-'],
-    ['Condição', A.rotulo || A.trial.nome], ['Filtro', A.trial.fc ? `${f(A.trial.fc, A.trial.fc % 1 ? 1 : 0)} Hz` : 'sem filtro'], ['Local', A.cfg.ambiente === 'esteira' ? `Esteira${A.cfg.velEsteira ? ' · ' + f(A.cfg.velEsteira, 1) + ' km/h' : ''}` : 'Solo'],
+    ['Condição', A.rotulo || A.trial.nome], ['Filtro', A.trial.fc ? `${f(A.trial.fc, A.trial.fc % 1 ? 1 : 0)} Hz` : 'sem filtro'], ['Local', A.cfg.ambiente === 'esteira' ? `Esteira${A.cfg.velEsteira ? ' · ' + (velocidadeTxt(A, f)?.kmh ?? f(A.cfg.velEsteira, 1)) + ' km/h' : ''}` : 'Solo'],
     ['Passadas analisadas', `${R.passadas.filter(p => !p.excluida && p.lado === 'D').length} D · ${R.passadas.filter(p => !p.excluida && p.lado === 'E').length} E`],
   ];
   cab.forEach(([k, v], i) => { const x = M + (i % 3) * 60, yy = y + Math.floor(i / 3) * 10; txt(k, x, yy, { s: 7.5, c: '#777' }); txt(v, x, yy + 4.5, { s: 10 }); });
@@ -55,12 +55,13 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
 
   // destaques
   const kp = [
-    ['Velocidade', sem ? '-' : f(T.velocidade.geral.m, 2) + ' m/s'], ['Cadência', f(T.cadencia.geral.m, 0) + ' passos/min'],
+    ['Velocidade', sem ? '-' : (velocidadeTxt(A, f)?.ms ?? '-') + ' m/s'], ['Cadência', f(T.cadencia.geral.m, 0) + ' passos/min'],
     ['Passada', sem ? '-' : f(T.passada.geral.m, 2) + ' m'],
     R.atividade === 'corrida' ? ['Tempo de voo', f((T.voo?.geral.m ?? NaN) * 1000, 0) + ' ms'] : ['Duplo apoio', f(T.duplaPct?.geral.m, 0) + ' %'],
   ];
   kp.forEach(([k, v], i) => { const x = M + i * 45; txt(k, x, y, { s: 7.5, c: '#777' }); txt(v, x, y + 6, { s: 13, b: true }); });
-  y += 14;
+  const Vk = sem ? null : velocidadeTxt(A, f); if (Vk) txt(`(${Vk.kmh} km/h)`, M, y + 10.5, { s: 8, c: '#555' });
+  y += 15;
   if (R.atividade === 'corrida' && R.padrao?.D) { txt(`Padrão de contato no TD: D ${R.padrao.D.pred} (pé ${f(T.anguloPe?.D.m, 0)}°), E ${R.padrao.E?.pred ?? '-'} (pé ${f(T.anguloPe?.E.m, 0)}°) · Altman & Davis (2012)`, M, y, { s: 8.5 }); y += 6; }
   // achados
   const ach = A.achados || [];
@@ -179,7 +180,7 @@ export function gerarExcel(A, D, comparacao) {
   const R = A.res, T = R.tab, t = A.trial.mot.time;
   const info = [
     ['Paciente', D.paciente], ['Data', dataBR(D.data)], ['Avaliador(a)', D.avaliador], ['Condição', A.rotulo], ['Sessão', A.sessao.nome], ['Trial', A.trial.nome],
-    ['Local', A.cfg.ambiente], ['Velocidade da esteira (km/h)', A.cfg.velEsteira ?? ''], ['Atividade', R.atividade], ['Método de eventos', R.metodo],
+    ['Local', A.cfg.ambiente], ['Velocidade da esteira (km/h)', A.cfg.velEsteira ?? ''], ['Velocidade média (km/h)', R.tab.velocidade?.geral?.m != null ? R.tab.velocidade.geral.m * 3.6 : ''], ['Atividade', R.atividade], ['Método de eventos', R.metodo],
     ['Filtro passa-baixa (Hz; Butterworth 4ª ordem, sem defasagem)', A.trial.fc || 'sem filtro'], ['Trecho analisado (s)', A.cfg.janela ? `${f(t[A.cfg.janela[0]], 2)} a ${f(t[A.cfg.janela[1]], 2)}` : 'trial inteiro'], ['Observações', D.obs], [],
     ['Variável', 'Unidade', 'Direito média', 'Direito DP', 'Direito n', 'Esquerdo média', 'Esquerdo DP', 'Esquerdo n', 'Simetria %', 'Geral média', 'Geral DP', 'CV %'],
   ];
