@@ -170,3 +170,24 @@ button.perigo.confirma{background:var(--d);color:#fff}
 .entrada.drop.sobre .alvo .ic-alvo{color:var(--acc)}
 .painel-trials{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:12px}
 [hidden]{display:none!important}
+
+/* apoio (Pix e Ko-fi) */
+.apoio-btn{display:inline-flex;align-items:center;gap:8px;margin-top:10px;font-size:.85rem}
+.apoio-btn svg,.apoio svg{width:16px;height:16px;flex:none}
+dialog.apoio{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg);padding:20px 22px;max-width:560px;width:calc(100% - 32px);box-sizing:border-box}
+dialog.apoio::backdrop{background:rgba(0,0,0,.5)}
+.apoio-cab{display:flex;justify-content:space-between;align-items:center}
+.apoio-cab h3{margin:0;font-size:1.1rem}
+.apoio .fechar{border:none;background:none;font-size:1.4rem;line-height:1;color:var(--mut);padding:2px 6px}
+.apoio-opcoes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+dialog.apoio.en [data-op="kofi"]{order:-1}
+@media (max-width:560px){.apoio-opcoes{grid-template-columns:1fr}}
+.apoio-op{border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.apoio-op h4{margin:0;font-size:.95rem}
+.apoio-op p{margin:0;font-size:.88rem}
+.apoio-op .qr{background:#fff;border-radius:8px;padding:8px;width:150px;align-self:center}
+.apoio-op .qr svg{width:100%;height:auto;display:block}
+.apoio-op .chave code{font-size:.72rem;word-break:break-all;color:var(--mut)}
+.apoio-op button,.apoio-op .botao{display:inline-flex;justify-content:center;align-items:center;gap:8px;margin-top:auto}
+a.botao{font:inherit;text-decoration:none;padding:6px 12px;border-radius:8px;border:1px solid var(--acc)}
+a.botao.prim{background:var(--acc);color:var(--acc-fg);font-weight:600}

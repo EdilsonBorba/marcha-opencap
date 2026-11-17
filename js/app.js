@@ -9,6 +9,7 @@ import { criarTimeline } from './timeline.js';
 import { desenharEsqueleto } from './skeleton.js';
 import * as api from './api.js';
 import { CREDITOS } from './creditos.js';
+import { iniciarApoio } from './apoio.js';
 import { carregarNormas, escolherFaixa } from './normas.js';
 import { aplicar as aplicarIdioma, trocarIdioma, idioma, locale } from './i18n.js';
 
@@ -45,6 +46,7 @@ montarPainelVis();
   if (C.orcid) l.push(`<a href="${C.orcid}" target="_blank" rel="noopener">ORCID</a>`);
   if (C.email) l.push(`<a href="mailto:${C.email}">${C.email}</a>`);
   $('#creditos').innerHTML = l.join(' · ');
+  iniciarApoio($('#btn-apoio'));
 }
 
 // ---------------- 1. carregar ----------------

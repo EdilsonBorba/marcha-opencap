@@ -83,5 +83,12 @@ Borba, E. F. de. *Marcha OpenCap: análise de marcha e corrida a partir de dados
 - Fukuchi CA, Fukuchi RK, Duarte M (2018). A public dataset of overground and treadmill walking kinematics and kinetics in healthy individuals. *PeerJ* 6:e4640.
 - Uhlrich SD et al. (2023). OpenCap: human movement dynamics from smartphone videos. *PLOS Comput Biol* 19:e1011462.
 
+## Apoie o projeto
+A ferramenta é gratuita e aberta. Se ela ajuda no seu trabalho, você pode me pagar um café:
+- **Pix** (chave aleatória): `2a5b4d70-dbe4-458a-aa2f-dfa7e6e75549`
+- **Ko-fi** (cartão ou PayPal, internacional): https://ko-fi.com/edilsonborba
+
+Também há o botão **"Me pague um café"** no rodapé do site.
+
 ## Autor
 Edilson Fernando de Borba · [Lattes](http://lattes.cnpq.br/8263176199605135) · [ORCID](https://orcid.org/0000-0002-9399-1098) · borba.edi@gmail.com
