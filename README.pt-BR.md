@@ -23,9 +23,11 @@ Tudo roda no navegador: os arquivos do paciente **não são enviados** a nenhum 
 10. Mostra o **esqueleto do modelo do OpenSim em 3D** ao lado do vídeo (cinemática direta do `.osim` com os ângulos do `.mot`; validado: marcadores do modelo a ~2 cm dos do OpenCap) e calcula o **centro de massa** pelas massas dos segmentos do modelo escalado.
 11. Dados do participante (sexo, idade, altura, massa) vêm do OpenCap e podem ser corrigidos.
 12. Avisa quando o rastreamento parece ruim (índice de regularidade).
-13. **Compara** trials ou sessões (antes × depois, condições), quantos quiser.
-14. Gera **laudo em PDF** (com caixa de **achados** automáticos: assimetrias ≥ 10 %, variabilidade, qualidade do rastreamento) e **Excel** com todos os dados.
-15. **Salva a análise** num arquivo `.json` (marcações, ajustes e resultados). Para comparar depois, basta abrir o arquivo, mesmo sem o ZIP; com o ZIP, tudo volta a ficar editável.
+13. **Trial completa:** esqueleto 3D ao lado das curvas ao longo de toda a trial, que vão se preenchendo durante a reprodução. As variáveis são escolhidas numa janela (esquerdo · direito · pelve, tronco e centro de massa), e clicar no gráfico leva àquele instante.
+14. **Mapa de pegadas** (tapete virtual), com linha de progressão, desvio lateral do trajeto, largura entre pegadas e **ângulo de progressão do pé**. Na esteira, as pegadas são reconstruídas com a velocidade da lona.
+15. **Compara** trials ou sessões (antes × depois, condições), quantos quiser.
+16. Gera **laudo em PDF** (com caixa de **achados** automáticos: assimetrias ≥ 10 %, variabilidade, qualidade do rastreamento) e **Excel** com todos os dados. Opcionalmente, o laudo inclui as curvas ao longo da trial (faixas de 10 s) e o mapa de pegadas (faixas de 4 m).
+17. **Salva a análise** num arquivo `.json` (marcações, ajustes e resultados). Para comparar depois, basta abrir o arquivo, mesmo sem o ZIP; com o ZIP, tudo volta a ficar editável.
 
 ## Privacidade: o que fica no seu computador
 - **ZIP ou pasta:** lidos direto do seu disco, só na memória da aba.

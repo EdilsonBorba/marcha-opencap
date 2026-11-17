@@ -23,7 +23,7 @@ async function imagem(tracos, titulo, shapes = [], legenda = false, setas = [], 
   return url;
 }
 
-export async function gerarPDF(A, D, comparacao, vis = null) {
+export async function gerarPDF(A, D, comparacao, vis = null, extras = {}) {
   vis = vis || { curvas: ANGULOS.map(a => a[0]), vars: VARS.map(v => v[0]), pontos: true, setas: true, dp: true };
   const ANG = ANGULOS.filter(a => vis.curvas.includes(a[0]) && A.res.curvas[a[0]] && Object.keys(A.res.curvas[a[0]]).length);
   const { jsPDF } = window.jspdf;
@@ -136,6 +136,42 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
   }
   rodape();
 
+  // curvas ao longo da trial (faixas de tempo)
+  if (extras.serie?.length) {
+    pdf.addPage(); y = M;
+    txt('Curvas ao longo da trial', M, y + 4, { s: 13, b: true });
+    txt('Trecho analisado, uma faixa de 10 s por linha. Barras no topo = apoio. Vermelho = direito; azul = esquerdo.', M, y + 10, { s: 8, c: '#666' });
+    y += 16;
+    const lw = W - 2 * M, lh = lw * 170 / 1100;
+    for (const g of extras.serie) {
+      if (y + 6 + lh > 280) { rodape(); pdf.addPage(); y = M; }
+      txt(g.titulo, M, y + 3, { s: 9.5, b: true }); y += 5;
+      for (const img of g.linhas) {
+        if (y + lh > 282) { rodape(); pdf.addPage(); y = M; txt(g.titulo + ' (cont.)', M, y + 3, { s: 9.5, b: true }); y += 5; }
+        pdf.addImage(img, 'JPEG', M, y, lw, lh); y += lh + 1.5;
+      }
+      y += 3;
+    }
+    rodape();
+  }
+  // mapa de pegadas
+  if (extras.pegadas?.linhas?.length) {
+    const P = extras.pegadas, Rm = P.resumo;
+    pdf.addPage(); y = M;
+    txt('Mapa de pegadas', M, y + 4, { s: 13, b: true });
+    txt(`Vista de cima, caminhando para a direita; cada pegada no meio do apoio. Tracejado = linha de progressão; linha fina = trajeto.${P.esteira ? ' Esteira: pegadas reconstruídas com a velocidade da lona.' : ''}`, M, y + 10, { s: 8, c: '#666' });
+    y += 17;
+    const ang = (l) => Rm[l].ang == null ? '-' : `${f(Rm[l].ang, 0)}°${Rm[l].angDp != null ? ' ± ' + f(Rm[l].angDp, 0) : ''}`;
+    txt(`Ângulo de progressão do pé (+ = ponta para fora): D ${ang('D')} · E ${ang('E')}`, M, y, { s: 9 }); y += 5;
+    txt(`Largura entre pegadas: ${Rm.largura == null ? '-' : f(Rm.largura * 100, 1) + ' cm'} · Desvio lateral da linha de progressão: máx ${Rm.desvioMax == null ? '-' : f(Rm.desvioMax * 100, 1) + ' cm'}, DP ${Rm.desvioDp == null ? '-' : f(Rm.desvioDp * 100, 1) + ' cm'}`, M, y, { s: 9 }); y += 6;
+    const lw = W - 2 * M, lh = lw * P.proporcao;
+    for (const img of P.linhas) {
+      if (y + lh > 282) { rodape(); pdf.addPage(); y = M; }
+      pdf.addImage(img, 'JPEG', M, y, lw, lh); y += lh + 2;
+    }
+    rodape();
+  }
+
   // comparação
   const L = (comparacao || []).filter(x => x.res);
   if (L.length >= 2) {
@@ -169,13 +205,13 @@ export async function gerarPDF(A, D, comparacao, vis = null) {
   pdf.save(nomeArq(A, 'pdf'));
 }
 
-const NOMES_ABA = {"Resumo": "Summary", "Passadas": "Strides", "Eventos": "Events", "Curvas_media": "Mean_curves", "Curvas_passadas": "Stride_curves", "Comparacao": "Comparison"};
+const NOMES_ABA = {"Pegadas": "Footprints", "Resumo": "Summary", "Passadas": "Strides", "Eventos": "Events", "Curvas_media": "Mean_curves", "Curvas_passadas": "Stride_curves", "Comparacao": "Comparison"};
 // traduz cabeçalhos e rótulos (as linhas com dados do usuário ficam como estão)
 function aba(wb, aoa, nome) {
   const t = aoa.map(l => l.map(v => typeof v === 'string' ? tr(v) : v));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(t), tr === null ? nome : (locale() === 'en-US' ? NOMES_ABA[nome] || nome : nome));
 }
-export function gerarExcel(A, D, comparacao) {
+export function gerarExcel(A, D, comparacao, pegadas = null) {
   const wb = XLSX.utils.book_new();
   const R = A.res, T = R.tab, t = A.trial.mot.time;
   const info = [
@@ -201,6 +237,7 @@ export function gerarExcel(A, D, comparacao) {
     A.eventos[k].forEach(i => ev.push([nome, lado, i, t[i]]));
   ev.splice(1, ev.length - 1, ...ev.slice(1).sort((a, b) => a[3] - b[3]));
   aba(wb, ev, 'Eventos');
+  if (pegadas) aba(wb, pegadas, 'Pegadas');
 
   const head = ['% ciclo']; const colsC = [];
   for (const [c] of ANGULOS) for (const l of ['D', 'E']) if (R.curvas[c]?.[l]) { head.push(`${c}_${l}_media`, `${c}_${l}_dp`); colsC.push([c, l]); }

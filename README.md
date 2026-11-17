@@ -23,9 +23,11 @@ Everything runs in the browser: patient files are **never uploaded** to any serv
 10. Shows the **OpenSim model skeleton in 3D** next to the video (forward kinematics of the `.osim` with the `.mot` angles; validated: model markers within ~2 cm of OpenCap's) and computes the **center of mass** from the segment masses of the scaled model.
 11. Participant data (sex, age, height, mass) come from OpenCap and can be corrected.
 12. Warns when tracking looks poor (regularity index).
-13. **Compares** trials or sessions (before × after, conditions), as many as you like.
-14. Generates a **PDF report** (with an automatic **findings** box: asymmetries ≥ 10 %, variability, tracking quality) and an **Excel** file with all data.
-15. **Saves the analysis** to a `.json` file (marks, settings and results). To compare later, just open the file, even without the ZIP; with the ZIP, everything becomes editable again.
+13. **Full trial:** 3D skeleton next to curves over the whole trial that fill in as it plays. Variables are picked in a dialog (left · right · pelvis, trunk and center of mass), and clicking a chart jumps to that moment.
+14. **Footprint map** (virtual walkway), with line of progression, lateral path deviation, width between footprints and **foot progression angle**. On the treadmill, footprints are rebuilt from the belt speed.
+15. **Compares** trials or sessions (before × after, conditions), as many as you like.
+16. Generates a **PDF report** (with an automatic **findings** box: asymmetries ≥ 10 %, variability, tracking quality) and an **Excel** file with all data. Optionally, the report includes the curves over the trial (10 s strips) and the footprint map (4 m strips).
+17. **Saves the analysis** to a `.json` file (marks, settings and results). To compare later, just open the file, even without the ZIP; with the ZIP, everything becomes editable again.
 
 ## Privacy: what stays on your computer
 - **ZIP or folder:** read straight from your disk, in the tab's memory only.

@@ -23,7 +23,7 @@
   </div>
   <button id="btn-idioma" class="idioma" type="button" data-no-tr title="Português / English">English</button>
   <nav class="passos">
-    <a href="#s-carregar">1 Dados</a><a href="#s-trial">2 Trial</a><a href="#s-revisao">3 Eventos</a><a href="#s-resultados">4 Resultados</a><a href="#s-comparar">5 Comparar</a><a href="#s-laudo">6 Laudo</a>
+    <a href="#s-carregar">1 Dados</a><a href="#s-trial">2 Trial</a><a href="#s-revisao">3 Eventos</a><a href="#s-resultados">4 Resultados</a><a href="#s-completa">5 Trial completa</a><a href="#s-comparar">6 Comparar</a><a href="#s-laudo">7 Laudo</a>
   </nav>
 </header>
 
@@ -200,8 +200,43 @@
   </details>
 </section>
 
+<section id="s-completa" class="card" hidden>
+  <h2><span class="n">5</span> Trial completa</h2>
+  <p class="dica">Esqueleto e curvas ao longo de toda a trial: a parte já percorrida fica em destaque. Clique num gráfico ou numa pegada para ir àquele instante.</p>
+  <div class="tc">
+    <div class="tc-esq">
+      <div class="tela tc-tela"><div id="visor3d-tc" class="visor3d"></div><span id="tc-status" class="esq-status"></span></div>
+      <div class="linha controles">
+        <button id="tc-play" class="prim" title="tocar / pausar">▶︎</button>
+        <label class="inline">Velocidade <select id="tc-rate"><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option></select></label>
+        <label class="inline">Vista <select id="tc-vista"><option value="lateral">Lado direito</option><option value="lateralE">Lado esquerdo</option><option value="frontal">Frente</option><option value="posterior">Trás</option><option value="cima">Cima</option><option value="livre">Livre (girar com o mouse)</option></select></label>
+        <span id="tc-tempo" class="mono"></span>
+      </div>
+    </div>
+    <div class="tc-dir">
+      <div class="linha tc-barra">
+        <button id="tc-vars" class="prim" type="button">Escolher variáveis</button>
+        <span id="tc-n" class="dica"></span>
+        <span class="tc-presets"></span>
+      </div>
+      <div id="tc-series" class="tc-series"></div>
+      <p class="dica">Barras no topo de cada gráfico = apoio (vermelho direito, azul esquerdo). Cinza = fora do trecho analisado. Arraste no gráfico para ampliar um trecho; clique duplo volta ao todo.</p>
+    </div>
+  </div>
+  <h3>Mapa de pegadas <span class="dica">tapete virtual: cada pegada no meio do apoio, vista de cima, caminhando para a direita</span></h3>
+  <div id="tc-resumo" class="tc-resumo"></div>
+  <div id="tc-pegadas" class="tc-pegadas"></div>
+  <div class="linha"><button id="tc-ped-inicio" class="sec" type="button">Voltar ao início</button><span class="dica">Arraste para percorrer. Tracejado = linha de progressão; linha fina = trajeto (ponto médio entre pegadas). Na esteira, as pegadas são reconstruídas somando o deslocamento da lona (velocidade × tempo).</span></div>
+</section>
+<dialog id="dlg-vars" class="dlg-vars">
+  <div class="apoio-cab"><h3>Escolher variáveis</h3><button class="fechar" type="button" data-fechar aria-label="Fechar">×</button></div>
+  <input id="vars-busca" type="search" placeholder="Buscar…" aria-label="Buscar">
+  <div class="linha"><button type="button" class="sec" id="vars-todos">Marcar todas</button><button type="button" class="sec" id="vars-nenhum">Limpar</button><span id="vars-cont" class="dica"></span></div>
+  <div id="vars-cols" class="vars-cols"></div>
+  <div class="linha vars-acoes"><button type="button" data-fechar>Cancelar</button><button type="button" class="prim" id="vars-aplicar">Aplicar</button></div>
+</dialog>
 <section id="s-comparar" class="card" hidden>
-  <h2><span class="n">5</span> Comparar trials ou sessões</h2>
+  <h2><span class="n">6</span> Comparar trials ou sessões</h2>
   <p class="dica">Marque dois ou mais trials já analisados (ex.: antes × depois, ou condições diferentes).</p>
   <div class="linha"><button type="button" class="sec" id="comp-todos">Marcar todos</button><button type="button" class="sec" id="comp-nenhum">Desmarcar todos</button></div>
   <div id="comp-lista" class="comp-lista"></div>
@@ -209,7 +244,7 @@
 </section>
 
 <section id="s-laudo" class="card" hidden>
-  <h2><span class="n">6</span> Laudo e dados</h2>
+  <h2><span class="n">7</span> Laudo e dados</h2>
   <div class="grade-form">
     <label>Paciente<input id="in-paciente"></label>
     <label>Data da avaliação<input id="in-data" type="date"></label>
@@ -217,6 +252,8 @@
   </div>
   <label class="bloco">Observações clínicas<textarea id="in-obs" rows="4"></textarea></label>
   <label class="radio"><input type="checkbox" id="chk-comp-laudo" checked> Incluir a comparação no laudo (se houver)</label>
+  <label class="radio"><input type="checkbox" id="chk-serie-laudo"> Incluir as curvas ao longo da trial (variáveis escolhidas no passo 5; uma faixa de 10 s por linha)</label>
+  <label class="radio"><input type="checkbox" id="chk-pegadas-laudo"> Incluir o mapa de pegadas (faixas de 4 m)</label>
   <div class="linha">
     <button id="btn-pdf" class="prim">Baixar laudo (PDF)</button>
     <button id="btn-xlsx">Baixar dados (Excel)</button>

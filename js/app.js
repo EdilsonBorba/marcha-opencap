@@ -10,6 +10,7 @@ import { desenharEsqueleto } from './skeleton.js';
 import * as api from './api.js';
 import { CREDITOS } from './creditos.js';
 import { iniciarApoio } from './apoio.js';
+import { criarSerie, criarPegadas, variaveisDisponiveis, PRESETS_SERIE, imagensSerieLaudo, imagensPegadasLaudo, tabelaPegadas } from './trial.js';
 import { carregarNormas, escolherFaixa } from './normas.js';
 import { aplicar as aplicarIdioma, trocarIdioma, idioma, locale } from './i18n.js';
 
@@ -22,7 +23,7 @@ const estado = { sessoes: [], analises: new Map(), atual: null, frame: 0, videoU
 window.__estado = estado;
 
 // ---------------- preferências de visualização ----------------
-const VIS_PADRAO = { curvas: PREDEF.marcha.curvas, vars: VARS.map(v => v[0]), pontos: true, setas: true, dp: true, normal: false };
+const VIS_PADRAO = { curvas: PREDEF.marcha.curvas, vars: VARS.map(v => v[0]), pontos: true, setas: true, dp: true, normal: false, serie: ['knee_angle_r', 'knee_angle_l'] };
 let vis = carregarVis();
 function carregarVis() { try { return { ...VIS_PADRAO, ...JSON.parse(localStorage.getItem('marcha-opencap:vis') || '{}') }; } catch { return { ...VIS_PADRAO }; } }
 function salvarVis() { try { localStorage.setItem('marcha-opencap:vis', JSON.stringify(vis)); } catch {} }
@@ -369,6 +370,7 @@ function irPara(i) {
   if (!estado.tocando && video.src && Math.abs(video.currentTime - t[i]) > 0.004) video.currentTime = t[i];
   tl.setFrame(i);
   desenharEsq();
+  atualizarTC(i);
 }
 function emApoio(A, i) {
   const r = {};
@@ -388,13 +390,14 @@ function desenharEsq() {
 new ResizeObserver(() => desenharEsq()).observe(canvas);
 
 // reprodução (com ou sem vídeo), em câmera lenta e com repetição do trecho visível
-$('#sel-rate').onchange = (e) => { video.playbackRate = +e.target.value; };
+$('#sel-rate').onchange = (e) => { video.playbackRate = +e.target.value; if ([...$('#tc-rate').options].some(o => o.value === e.target.value)) $('#tc-rate').value = e.target.value; };
 $('#btn-play').onclick = () => estado.tocando ? pausar() : tocar();
 let raf = null, acum = 0, ultimoT = 0;
 function tocar() {
   const A = atual(); if (!A) return;
   const t = A.trial.mot.time, dt = t[1] - t[0];
-  estado.tocando = true; $('#btn-play').textContent = '❚❚';
+  if (estado.frame >= t.length - 2) estado.frame = A.cfg.janela?.[0] ?? 0;
+  estado.tocando = true; $('#btn-play').textContent = '❚❚'; $('#tc-play').textContent = '❚❚';
   const [v0, v1] = tl.visivel();
   if ($('#chk-loop').checked && (estado.frame < v0 || estado.frame >= v1)) { estado.frame = v0; if (video.src) video.currentTime = t[v0]; }
   if (video.src) { video.playbackRate = +$('#sel-rate').value; video.currentTime = t[estado.frame]; video.play().catch(() => {}); }
@@ -410,7 +413,7 @@ function tocar() {
     if (f !== estado.frame) {
       estado.frame = f;
       $('#tempo').textContent = `${fmt(t[f], 2)} s · quadro ${f}`;
-      tl.setFrame(f); desenharEsq();
+      tl.setFrame(f); desenharEsq(); atualizarTC(f);
     }
     raf = requestAnimationFrame(passo);
   };
@@ -418,7 +421,7 @@ function tocar() {
 }
 function pausar() {
   if (!estado.tocando) return;
-  estado.tocando = false; $('#btn-play').textContent = '▶︎';
+  estado.tocando = false; $('#btn-play').textContent = '▶︎'; $('#tc-play').textContent = '▶︎';
   cancelAnimationFrame(raf); video.pause();
   irPara(estado.frame);
 }
@@ -488,6 +491,7 @@ function recalcularJa() {
   mostrarResultados(A);
   montarSelTrial(); montarComparar();
   $('#s-comparar').hidden = false; $('#s-laudo').hidden = false;
+  mostrarTC(A);
 }
 function redesenharResultados() { const A = atual(); if (A?.res) { mostrarResultados(A); desenharComparacao(); } }
 
@@ -561,7 +565,81 @@ function desenharCurvas(A) {
   }
 }
 
-// ---------------- 5. comparar ----------------
+
+// ---------------- 5. trial completa ----------------
+const coresTC = () => ({ D: css('--d'), E: css('--e') });
+const serieTC = criarSerie($('#tc-series'), { onSeek: (f) => { pausar(); irPara(f); }, cores: coresTC() });
+const pegadasTC = criarPegadas($('#tc-pegadas'), { onSeek: (f) => { pausar(); irPara(f); }, cores: coresTC(), aoResumo: resumoPegadas });
+const visorTC = criarVisor3D($('#visor3d-tc'));
+$('#visor3d-tc').addEventListener('vista', (e) => { $('#tc-vista').value = e.detail; });
+let tcTrial = null, tcVisivel = false;
+new IntersectionObserver((es) => { tcVisivel = es.some(e => e.isIntersecting); if (tcVisivel) atualizarTC(estado.frame); }).observe($('#s-completa'));
+function idsSerie(A) { const ok = new Set(variaveisDisponiveis(A).map(v => v.id)); return vis.serie.filter(id => ok.has(id)); }
+async function mostrarTC(A) {
+  $('#s-completa').hidden = false;
+  const ids = idsSerie(A);
+  $('#tc-n').textContent = `${ids.length} ${ids.length === 1 ? 'variável' : 'variáveis'}`;
+  serieTC.set(A, ids); pegadasTC.set(A);
+  if (tcTrial !== A.k) {
+    tcTrial = A.k;
+    const mod = await obterModelo(A.sessao);
+    if (!mod) { $('#tc-status').textContent = 'Sem modelo do OpenSim nesta sessão.'; }
+    else {
+      $('#tc-status').textContent = 'Carregando o esqueleto…';
+      try { await visorTC.carregar(mod, A.sessao, A.trial.mot, A.det.dir); visorTC.setVista($('#tc-vista').value); $('#tc-status').textContent = ''; }
+      catch (e) { console.error(e); $('#tc-status').textContent = 'Não consegui montar o esqueleto 3D.'; }
+    }
+  }
+  atualizarTC(estado.frame, true);
+}
+function atualizarTC(i, forcar = false) {
+  const A = atual(); if (!A?.res || $('#s-completa').hidden) return;
+  serieTC.frame(i);
+  if (!tcVisivel && !forcar) return;
+  $('#tc-tempo').textContent = `${fmt(A.trial.mot.time[i], 2)} s`;
+  visorTC.quadro(i, emApoio(A, i));
+  pegadasTC.frame(i);
+}
+function resumoPegadas(M) {
+  const el = $('#tc-resumo');
+  if (!M || M.erro || !M.pes?.length) { el.innerHTML = ''; return; }
+  const R = M.resumo, ang = (l) => R[l].ang == null ? '–' : `${fmt(R[l].ang, 0)}°${R[l].angDp != null ? ' ± ' + fmt(R[l].angDp, 0) : ''}`;
+  el.innerHTML = [
+    `<span>Ângulo de progressão do pé <span class="dica">(+ = ponta para fora)</span>: <b class="lado d">D ${ang('D')}</b> · <b class="lado e">E ${ang('E')}</b></span>`,
+    `<span>Largura entre pegadas: <b>${R.largura == null ? '–' : fmt(R.largura * 100, 1) + ' cm'}</b></span>`,
+    `<span>Desvio lateral da linha de progressão: <b>máx ${R.desvioMax == null ? '–' : fmt(R.desvioMax * 100, 1) + ' cm'}</b> · DP ${R.desvioDp == null ? '–' : fmt(R.desvioDp * 100, 1) + ' cm'}</span>`,
+  ].join('');
+}
+$('#tc-play').onclick = () => { if (estado.tocando) return pausar(); $('#sel-rate').value = $('#tc-rate').value; tocar(); };
+$('#tc-rate').onchange = (e) => { $('#sel-rate').value = e.target.value; video.playbackRate = +e.target.value; };
+$('#tc-vista').onchange = (e) => { visorTC.setVista(e.target.value); atualizarTC(estado.frame, true); };
+$('#tc-ped-inicio').onclick = () => pegadasTC.inicio();
+$('.tc-presets').innerHTML = Object.keys(PRESETS_SERIE).map(k => `<button type="button" class="sec" data-ps="${k}">${k}</button>`).join('');
+$$('[data-ps]').forEach(b => b.onclick = () => { vis.serie = [...PRESETS_SERIE[b.dataset.ps]]; salvarVis(); const A = atual(); if (A?.res) mostrarTC(A); });
+// janela de variáveis (esquerdo · direito · pelve, tronco e centro de massa)
+let selVars = new Set();
+function montarVars() {
+  const A = atual(); if (!A) return;
+  const q = $('#vars-busca').value.trim().toLowerCase();
+  const todas = variaveisDisponiveis(A);
+  const vis_ = todas.filter(v => !q || (v.rotulo + ' ' + v.id).toLowerCase().includes(q));
+  const col = (lado, tit) => `<div><h4>${tit}</h4>${vis_.filter(v => v.lado === lado).map(v => `<label class="radio"><input type="checkbox" data-var="${v.id}" ${selVars.has(v.id) ? 'checked' : ''}> ${esc(v.rotulo)}</label>`).join('')}</div>`;
+  $('#vars-cols').innerHTML = col('E', 'Esquerdo') + col('D', 'Direito') + col('O', 'Pelve, tronco e centro de massa');
+  $('#vars-cont').textContent = `${selVars.size} marcadas · ${vis_.length} mostradas`;
+  $$('#vars-cols [data-var]').forEach(c => c.onchange = () => { c.checked ? selVars.add(c.dataset.var) : selVars.delete(c.dataset.var); $('#vars-cont').textContent = `${selVars.size} marcadas · ${vis_.length} mostradas`; });
+}
+$('#tc-vars').onclick = () => { const A = atual(); if (!A) return; selVars = new Set(idsSerie(A)); $('#vars-busca').value = ''; montarVars(); $('#dlg-vars').showModal(); };
+$('#vars-busca').oninput = montarVars;
+$('#vars-todos').onclick = () => { $$('#vars-cols [data-var]').forEach(c => selVars.add(c.dataset.var)); montarVars(); };
+$('#vars-nenhum').onclick = () => { selVars.clear(); montarVars(); };
+$$('#dlg-vars [data-fechar]').forEach(b => b.onclick = () => $('#dlg-vars').close());
+$('#dlg-vars').addEventListener('click', (e) => { if (e.target.id === 'dlg-vars') e.target.close(); });
+$('#vars-aplicar').onclick = () => {
+  const A = atual(); const ordem = variaveisDisponiveis(A).map(v => v.id);
+  vis.serie = ordem.filter(id => selVars.has(id)); salvarVis(); $('#dlg-vars').close(); if (A?.res) mostrarTC(A);
+};
+
+// ---------------- 6. comparar ----------------
 const comparados = new Set();
 function montarComparar() {
   const html = estado.sessoes.map(s => {
@@ -627,17 +705,23 @@ function desenharComparacao() {
   }
 }
 
-// ---------------- 6. laudo ----------------
+// ---------------- 7. laudo ----------------
 $('#in-data').valueAsDate = new Date();
 $('#btn-pdf').onclick = async () => {
   const A = atual(); if (!A?.res) return;
   status('#laudo-status', 'Gerando PDF…');
-  try { await gerarPDF(A, dadosLaudo(), $('#chk-comp-laudo').checked ? selecionadosComparacao() : [], { ...vis, faixa: faixaPara(A) }); status('#laudo-status', 'PDF baixado.'); }
+  try {
+    const cor = { D: '#c62828', E: '#1f5fd6' }, extras = {};
+    if ($('#chk-serie-laudo').checked) { status('#laudo-status', 'Gerando PDF… (curvas ao longo da trial)'); extras.serie = await imagensSerieLaudo(A, idsSerie(A), cor); }
+    if ($('#chk-pegadas-laudo').checked) { status('#laudo-status', 'Gerando PDF… (mapa de pegadas)'); extras.pegadas = await imagensPegadasLaudo(A, cor); }
+    status('#laudo-status', 'Gerando PDF…');
+    await gerarPDF(A, dadosLaudo(), $('#chk-comp-laudo').checked ? selecionadosComparacao() : [], { ...vis, faixa: faixaPara(A) }, extras); status('#laudo-status', 'PDF baixado.');
+  }
   catch (err) { console.error(err); status('#laudo-status', 'Erro ao gerar PDF: ' + err.message, true); }
 };
 $('#btn-xlsx').onclick = () => {
   const A = atual(); if (!A?.res) return;
-  try { gerarExcel(A, dadosLaudo(), selecionadosComparacao()); status('#laudo-status', 'Excel baixado.'); }
+  try { gerarExcel(A, dadosLaudo(), selecionadosComparacao(), tabelaPegadas(A)); status('#laudo-status', 'Excel baixado.'); }
   catch (err) { console.error(err); status('#laudo-status', 'Erro ao gerar Excel: ' + err.message, true); }
 };
 // ---------------- salvar / abrir análise ----------------
@@ -702,5 +786,6 @@ $('#btn-idioma').onclick = () => trocarIdioma(idioma() === 'pt' ? 'en' : 'pt', (
   const A = atual();
   if (A) { infoTrial(A); if (A.res) mostrarResultados(A); }
   montarComparar(); tl.redesenhar(); desenharEsq();
+  if (A?.res) mostrarTC(A);
 });
 botaoIdioma(); aplicarIdioma();

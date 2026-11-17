@@ -198,3 +198,31 @@ dialog.apoio.en [data-op="kofi"]{order:-1}
 .apoio-op .chave{min-height:1em}
 a.botao{font:inherit;text-decoration:none;padding:6px 12px;border-radius:8px;border:1px solid var(--acc)}
 a.botao.prim{background:var(--acc);color:var(--acc-fg);font-weight:600}
+
+/* passo 5: trial completa */
+.tc{display:grid;grid-template-columns:minmax(260px,380px) 1fr;gap:16px;align-items:start}
+@media (max-width:900px){.tc{grid-template-columns:1fr}}
+.tc-esq{position:sticky;top:76px}
+.tc-tela{position:relative;height:min(46vh,420px)}
+.tc-barra{gap:8px;flex-wrap:wrap}
+.tc-presets{display:inline-flex;gap:6px;flex-wrap:wrap}
+.tc-presets button{font-size:.82rem;padding:4px 10px}
+.tc-series{display:flex;flex-direction:column;gap:6px;max-height:min(70vh,760px);overflow-y:auto}
+.serie{position:relative}
+.serie-tit{font-size:.85rem;font-weight:600;margin:6px 0 2px 48px}
+.serie-graf{height:176px;position:relative}
+.serie .futuro{position:absolute;pointer-events:none;background:color-mix(in srgb,var(--card) 68%,transparent);border-left:2px solid var(--fg);z-index:2}
+.tc-resumo{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:.9rem;margin:4px 0 8px}
+.tc-resumo b{font-weight:600}
+.tc-pegadas{position:relative;height:230px}
+.pegadas-graf{height:100%}
+.pegadas-cursor{position:absolute;pointer-events:none;border-left:2px solid var(--fg);z-index:2}
+dialog.dlg-vars{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg);padding:18px 20px;width:min(720px,calc(100% - 32px));box-sizing:border-box}
+dialog.dlg-vars::backdrop{background:rgba(0,0,0,.5)}
+.dlg-vars input[type=search]{width:100%;box-sizing:border-box;margin:10px 0}
+.vars-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 16px;max-height:52vh;overflow-y:auto;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:8px 0;margin:8px 0}
+@media (max-width:560px){.vars-cols{grid-template-columns:1fr}}
+.vars-cols h4{margin:4px 0 6px;font-size:.78rem;letter-spacing:.04em;color:var(--mut);text-transform:uppercase}
+.vars-cols label.radio{font-size:.88rem;padding:3px 0}
+.vars-acoes{justify-content:flex-end}
+.dlg-vars .fechar{border:none;background:none;font-size:1.4rem;line-height:1;color:var(--mut);padding:2px 6px}
