@@ -92,20 +92,20 @@ export function criarSerie(el, { onSeek, cores }) {
   let A = null, G = [], ctx = null, faixaX = null, sincronizando = false;
   const divs = [];
 
-  function overlay(gd) {
-    let o = gd.parentElement.querySelector('.futuro');
-    if (!o) { o = document.createElement('div'); o.className = 'futuro'; gd.parentElement.appendChild(o); }
-    return o;
-  }
+  // Cada variável tem dois traços: um claro (a trial inteira) e um forte por cima, recortado (clip-path)
+  // até o instante atual. Só o recorte muda a cada quadro, então a reprodução fica leve.
   function posicionar(i) {
     if (!A) return;
     const tt = A.trial.mot.time[i];
     for (const gd of divs) {
-      const fl = gd._fullLayout; if (!fl?.xaxis) continue;
-      const [r0, r1] = fl.xaxis.range, s = fl._size;
-      const fr = Math.max(0, Math.min(1, (tt - r0) / (r1 - r0)));
-      const o = overlay(gd);
-      o.style.left = (s.l + fr * s.w) + 'px'; o.style.top = s.t + 'px'; o.style.height = s.h + 'px'; o.style.width = Math.max(0, (1 - fr) * s.w) + 'px';
+      const xa = gd._fullLayout?.xaxis; if (!xa) continue;
+      const xc = xa.l2p(tt);   // instante atual, em px da área do gráfico
+      gd.querySelectorAll('.scatterlayer .trace').forEach((g, k) => {
+        if (gd.data[k]?.meta !== 'forte') return;
+        let bb; try { bb = g.getBBox(); } catch { return; }
+        const corte = Math.max(0, bb.x + bb.width - xc);   // px a esconder à direita do traço forte
+        g.style.clipPath = `inset(-20px ${corte}px -20px -20px)`;
+      });
     }
   }
 
@@ -122,8 +122,14 @@ export function criarSerie(el, { onSeek, cores }) {
       box.innerHTML = `<div class="serie-tit">${tr(g.titulo)}</div><div class="serie-graf"></div>`;
       el.appendChild(box);
       const gd = box.querySelector('.serie-graf'); divs.push(gd);
-      const tracos = g.itens.map(it => ({ x, y: Array.from(serie(A, it.id, ctx) || []), type: 'scatter', mode: 'lines', name: it.lado === 'D' ? tr('Direito') : it.lado === 'E' ? tr('Esquerdo') : tr(g.titulo.split(' · ')[0]),
-        line: { color: it.lado === 'D' ? cores.D : it.lado === 'E' ? cores.E : css('--fg'), width: 1.6 }, hovertemplate: `%{y:.1f}${g.un === '°' ? '°' : ' cm'}<extra>%{fullData.name}</extra>` }));
+      const tracos = g.itens.flatMap(it => {
+        const y = Array.from(serie(A, it.id, ctx) || []), cor = it.lado === 'D' ? cores.D : it.lado === 'E' ? cores.E : css('--fg');
+        const nome = it.lado === 'D' ? tr('Direito') : it.lado === 'E' ? tr('Esquerdo') : tr(g.titulo.split(' · ')[0]);
+        return [
+          { x, y, type: 'scatter', mode: 'lines', line: { color: cor, width: 1.6 }, opacity: 0.25, hoverinfo: 'skip', meta: 'claro' },
+          { x, y, type: 'scatter', mode: 'lines', name: nome, line: { color: cor, width: 1.8 }, meta: 'forte', hovertemplate: `%{y:.1f}${g.un === '°' ? '°' : ' cm'}<extra>%{fullData.name}</extra>` },
+        ];
+      });
       const shapes = [];
       // fora do trecho analisado: cinza
       if (w0 > 0) shapes.push({ type: 'rect', xref: 'x', yref: 'paper', x0: t[0], x1: t[w0], y0: 0, y1: 1, fillcolor: css('--line'), opacity: 0.35, line: { width: 0 }, layer: 'below' });
@@ -226,7 +232,18 @@ export function calcularPegadas(A) {
   resumo.desvioDp = dv.length > 1 ? Math.sqrt(dv.reduce((s, x) => s + x * x, 0) / dv.length) : null;
   resumo.largura = tu.length ? tu.reduce((s, x) => s + x.largura, 0) / tu.length : null;
   // posição do sacro no mapa (cursor)
-  const sac = (i) => P.sac.x[i] * d.x + P.sac.z[i] * d.z + v * t[i];
+  const sacU = (i) => P.sac.x[i] * d.x + P.sac.z[i] * d.z + v * t[i];
+  // posição da barra: no TD de cada pegada, exatamente no calcanhar dela; entre dois TD, interpola no tempo.
+  // Antes da primeira e depois da última, acompanha o deslocamento do sacro.
+  const sac = (i) => {
+    if (!pes.length) return sacU(i);
+    if (i <= pes[0].frame) return pes[0].uCal + sacU(i) - sacU(pes[0].frame);
+    const ult = pes[pes.length - 1];
+    if (i >= ult.frame) return ult.uCal + sacU(i) - sacU(ult.frame);
+    let k = 1; while (pes[k].frame <= i) k++;
+    const p = pes[k - 1], q = pes[k], f = (i - p.frame) / (q.frame - p.frame || 1);
+    return p.uCal + f * (q.uCal - p.uCal);
+  };
   return { pes, trajeto, linha: { a: a0, b: b0 }, resumo, esteira, sac, uMin: Math.min(...pes.map(p => p.u)) - 0.4, uMax: Math.max(...pes.map(p => p.u)) + 0.4 };
 }
 

@@ -211,7 +211,6 @@ a.botao.prim{background:var(--acc);color:var(--acc-fg);font-weight:600}
 .serie{position:relative}
 .serie-tit{font-size:.85rem;font-weight:600;margin:6px 0 2px 48px}
 .serie-graf{height:176px;position:relative}
-.serie .futuro{position:absolute;pointer-events:none;background:color-mix(in srgb,var(--card) 68%,transparent);border-left:2px solid var(--fg);z-index:2}
 .tc-resumo{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:.9rem;margin:4px 0 8px}
 .tc-resumo b{font-weight:600}
 .tc-pegadas{position:relative;height:230px}
