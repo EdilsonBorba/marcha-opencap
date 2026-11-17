@@ -317,13 +317,12 @@ async function prepararVisor3D(A) {
 $('#sel-tipo-esq').onchange = () => { const A = atual(); if (A) prepararVisor3D(A); };
 $('#chk-cm').onchange = (e) => { visor.setCM(e.target.checked); desenharEsq(); };
 $('#sel-cam').onchange = trocarVideo;
-$('#sel-visao').onchange = () => { aplicarVisao(); desenharEsq(); };
 $('#sel-vista').onchange = () => { if (modo3d) visor.setVista($('#sel-vista').value); desenharEsq(); };
-function aplicarVisao() {
-  const v = $('#sel-visao').value;
-  $('#tela-video').hidden = v === 'esqueleto';
-  $('#tela-esq').hidden = v === 'video';
-  $('.telas').classList.toggle('um', v !== 'ambos');
+// vídeo e modelo sempre lado a lado; sem vídeo sincronizado, só o modelo
+function aplicarVisao(semVideo = false) {
+  $('#tela-video').hidden = semVideo;
+  $('#tela-esq').hidden = false;
+  $('.telas').classList.toggle('um', semVideo);
 }
 async function trocarVideo() {
   const A = atual(); const cam = $('#sel-cam').value;
@@ -331,9 +330,10 @@ async function trocarVideo() {
   estado.videoURL = null; video.removeAttribute('src'); video.load();
   if (!cam) {
     $('#video-status').textContent = 'Este trial não tem vídeo sincronizado; use o esqueleto.';
-    if ($('#sel-visao').value !== 'esqueleto') { $('#sel-visao').value = 'esqueleto'; aplicarVisao(); }
+    aplicarVisao(true); desenharEsq();
     return;
   }
+  aplicarVisao(false);
   $('#video-status').textContent = 'carregando vídeo…';
   try {
     estado.videoURL = await urlVideo(A.sessao, A.trial.videos[cam]); video.src = estado.videoURL;
