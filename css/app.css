@@ -1,17 +1,20 @@
+/* tokens: mesma identidade das aulas e dos vídeos (Domine + Nunito Sans, creme e tinta). Vermelho/azul só para os lados D/E. */
 :root{
-  --bg:#f6f5f1; --card:#ffffff; --fg:#1d1d1b; --mut:#6b6a64; --line:#e2dfd6;
-  --acc:#1f5fd6; --acc-fg:#fff; --d:#d23a3a; --e:#2f6fdb; --warn-bg:#fff4dc; --warn-fg:#7a5200; --ok:#1d7a46;
-  --sel:#fff7d6;
+  --bg:#F6F3EC; --card:#FFFDF8; --fg:#1C2733; --mut:#5E6873; --line:#E2DCCF;
+  --acc:#1C2733; --acc-fg:#F6F3EC; --link:#2C7A86;
+  --d:#C8372D; --e:#2361C9; --warn-bg:#FBEFD9; --warn-fg:#7A4B00; --sel:#FFF4D1;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#171716; --card:#21211f; --fg:#ecebe6; --mut:#a3a199; --line:#36352f;
-    --acc:#6f9dff; --acc-fg:#0d1a33; --d:#ff7070; --e:#76a6ff; --warn-bg:#3a2e12; --warn-fg:#ffd98a; --ok:#5fd394; --sel:#3a3417;
+    --bg:#121820; --card:#1A222C; --fg:#ECE7DC; --mut:#9AA3AC; --line:#2C3743;
+    --acc:#ECE7DC; --acc-fg:#1C2733; --link:#6CC0CC;
+    --d:#FF7A70; --e:#7EAAFF; --warn-bg:#3A2E12; --warn-fg:#FFD98A; --sel:#3A3417;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#171716; --card:#21211f; --fg:#ecebe6; --mut:#a3a199; --line:#36352f;
-  --acc:#6f9dff; --acc-fg:#0d1a33; --d:#ff7070; --e:#76a6ff; --warn-bg:#3a2e12; --warn-fg:#ffd98a; --ok:#5fd394; --sel:#3a3417;
+  --bg:#121820; --card:#1A222C; --fg:#ECE7DC; --mut:#9AA3AC; --line:#2C3743;
+  --acc:#ECE7DC; --acc-fg:#1C2733; --link:#6CC0CC;
+  --d:#FF7A70; --e:#7EAAFF; --warn-bg:#3A2E12; --warn-fg:#FFD98A; --sel:#3A3417;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
@@ -225,3 +228,36 @@ dialog.dlg-vars::backdrop{background:rgba(0,0,0,.5)}
 .vars-cols label.radio{font-size:.88rem;padding:3px 0}
 .vars-acoes{justify-content:flex-end}
 .dlg-vars .fechar{border:none;background:none;font-size:1.4rem;line-height:1;color:var(--mut);padding:2px 6px}
+
+/* ---- identidade visual e tema ---- */
+body{font-family:"Nunito Sans",system-ui,sans-serif;font-size:15.5px}
+.topo h1,h2,.entrada h3,dialog h3{font-family:Domine,Georgia,serif;font-weight:600;letter-spacing:-.005em}
+.topo h1{font-size:1.35rem}
+h2{font-size:1.2rem}
+.n{font-family:Domine,Georgia,serif;font-weight:700}
+.card{border-radius:10px;box-shadow:0 1px 0 rgba(28,39,51,.04)}
+a,.creditos a{color:var(--link)}
+/* ícones e foco em petróleo, não em azul de lado */
+.entrada .ic{color:var(--link)}
+button:hover{border-color:var(--fg)}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--link);outline-offset:1px}
+/* passo 1: só o ZIP é principal; os outros caminhos ficam secundários */
+.entrada:not(.drop) button.prim{background:transparent;color:var(--fg);border-color:var(--fg);font-weight:600}
+.entrada:not(.drop) button.prim:hover{background:var(--fg);color:var(--bg)}
+/* menus que cortavam o texto */
+.grade-form label:has(#sel-metodo),.grade-form label:has(#sel-ref-pe){grid-column:span 2}
+/* cartões de resultado ocupam a largura toda */
+.cards{display:flex;flex-wrap:wrap}
+.cards .kpi{flex:1 1 150px}
+.cards .alerta{flex-basis:100%}
+.kpi{background:var(--bg)}
+.kpi .v{font-family:Domine,Georgia,serif;font-weight:700}
+.glossario{border-left-color:var(--link)}
+.tl-vis,.tl-brush,.tl-alca2 line{stroke:var(--link)}
+.tl-brush{fill:color-mix(in srgb,var(--link) 25%,transparent)}
+.tl-aba{fill:var(--link)} .tl-aba-t{fill:#fff}
+#s-trial .grade-form{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.tema{display:inline-flex;align-items:center;gap:6px}
+.tema svg{width:15px;height:15px;flex:none}
+.tema + .idioma{margin-left:0}
+.tc-tela{background:var(--bg);border:1px solid var(--line)}

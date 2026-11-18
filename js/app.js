@@ -539,7 +539,7 @@ function mostrarResultados(A) {
 
 function layoutBase(extra) {
   const eixo = { gridcolor: css('--line'), zerolinecolor: css('--mut'), linecolor: css('--line') };
-  return Object.assign({ paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: css('--fg'), size: 11, family: '-apple-system,system-ui,sans-serif' } }, extra,
+  return Object.assign({ paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: css('--fg'), size: 11, family: '"Nunito Sans",system-ui,sans-serif' } }, extra,
     { xaxis: Object.assign({}, eixo, extra.xaxis), yaxis: Object.assign({}, eixo, extra.yaxis) });
 }
 
@@ -782,10 +782,38 @@ function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<':
 // ---------------- idioma ----------------
 function botaoIdioma() { $('#btn-idioma').textContent = idioma() === 'pt' ? 'English' : 'Português'; }
 $('#btn-idioma').onclick = () => trocarIdioma(idioma() === 'pt' ? 'en' : 'pt', () => {
-  botaoIdioma();
+  botaoIdioma(); botaoTema();
   const A = atual();
   if (A) { infoTrial(A); if (A.res) mostrarResultados(A); }
   montarComparar(); tl.redesenhar(); desenharEsq();
   if (A?.res) mostrarTC(A);
 });
 botaoIdioma(); aplicarIdioma();
+
+// ---------------- tema (automático → claro → escuro) ----------------
+const ICONE_TEMA = {
+  auto: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>',
+  light: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  dark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>',
+};
+const temaAtual = () => document.documentElement.dataset.theme || 'auto';
+function botaoTema() {
+  const t = temaAtual(), en = idioma() === 'en';
+  const nome = { auto: en ? 'Auto' : 'Automático', light: en ? 'Light' : 'Claro', dark: en ? 'Dark' : 'Escuro' }[t];
+  const b = $('#btn-tema'); b.innerHTML = `${ICONE_TEMA[t]}<span>${nome}</span>`;
+  b.title = en ? 'Theme: automatic (follows the system), light or dark' : 'Tema: automático (segue o sistema), claro ou escuro';
+}
+function redesenharTema() {
+  const A = atual();
+  if (A) { if (A.res) mostrarResultados(A); }
+  montarComparar(); tl.redesenhar(); desenharEsq(); desenharSinal();
+  if (A?.res) mostrarTC(A);
+}
+$('#btn-tema').onclick = () => {
+  const prox = { auto: 'light', light: 'dark', dark: 'auto' }[temaAtual()];
+  if (prox === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = prox;
+  try { prox === 'auto' ? localStorage.removeItem('marcha-opencap:tema') : localStorage.setItem('marcha-opencap:tema', prox); } catch {}
+  botaoTema(); redesenharTema();
+};
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (temaAtual() === 'auto') redesenharTema(); });
+botaoTema();

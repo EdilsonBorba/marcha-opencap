@@ -4,7 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Marcha OpenCap</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='6' r='3.5' fill='%231f5fd6'/%3E%3Cpath d='M16 10l-3 9 4 3-2 8M16 10l3 8-5 1M13 19l-5 4' stroke='%231f5fd6' stroke-width='2.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='6' r='3.5' fill='%231C2733'/%3E%3Cpath d='M16 10l-3 9 4 3-2 8M16 10l3 8-5 1M13 19l-5 4' stroke='%231C2733' stroke-width='2.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<script>try{var t=localStorage.getItem("marcha-opencap:tema");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Domine:wght@400..700&family=Nunito+Sans:opsz,wght@6..12,400..800&display=swap">
 <link rel="stylesheet" href="css/app.css">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-basic-dist-min@2.35.2/plotly-basic.min.js"></script>
@@ -21,6 +23,7 @@
       <p class="sub">Análise de caminhada e corrida a partir dos dados do OpenCap</p>
     </div>
   </div>
+  <button id="btn-tema" class="idioma tema" type="button" data-no-tr></button>
   <button id="btn-idioma" class="idioma" type="button" data-no-tr title="Português / English">English</button>
   <nav class="passos">
     <a href="#s-carregar">1 Dados</a><a href="#s-trial">2 Trial</a><a href="#s-revisao">3 Eventos</a><a href="#s-resultados">4 Resultados</a><a href="#s-completa">5 Trial completa</a><a href="#s-comparar">6 Comparar</a><a href="#s-laudo">7 Laudo</a>

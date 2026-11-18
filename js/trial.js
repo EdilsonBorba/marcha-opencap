@@ -139,7 +139,7 @@ export function criarSerie(el, { onSeek, cores }) {
       lados.forEach((l, k) => apoio[l].forEach(([a, b]) => shapes.push({ type: 'rect', xref: 'x', yref: 'paper', x0: t[a], x1: t[b], y0: 1.02 + k * 0.05, y1: 1.06 + k * 0.05, fillcolor: cores[l], opacity: 0.85, line: { width: 0 } })));
       const eixo = { gridcolor: css('--line'), zerolinecolor: css('--mut'), linecolor: css('--line') };
       Plotly.newPlot(gd, tracos, {
-        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: css('--fg'), size: 11, family: '-apple-system,system-ui,sans-serif' },
+        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: css('--fg'), size: 11, family: '"Nunito Sans",system-ui,sans-serif' },
         margin: { l: 48, r: 10, t: 24, b: 28 }, showlegend: false, hovermode: 'x', dragmode: 'zoom', shapes,
         xaxis: { ...eixo, range: faixaX || [t[0], t[t.length - 1]], ticksuffix: ' s' },
         yaxis: { ...eixo, fixedrange: true, ticksuffix: g.un === '°' ? '°' : ' cm' },
@@ -286,7 +286,7 @@ export function criarPegadas(el, { onSeek, cores, aoResumo }) {
     const eixo = { gridcolor: css('--line'), zerolinecolor: css('--line'), linecolor: css('--line') };
     const ini = faixa || [M.uMin, M.uMin + 6];
     Plotly.newPlot(gd, tracos, {
-      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: css('--fg'), size: 11, family: '-apple-system,system-ui,sans-serif' },
+      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: css('--fg'), size: 11, family: '"Nunito Sans",system-ui,sans-serif' },
       margin: { l: 44, r: 10, t: 6, b: 28 }, showlegend: false, dragmode: 'pan', hovermode: 'closest', shapes,
       xaxis: { ...eixo, range: ini, ticksuffix: ' m', zeroline: false },
       yaxis: { ...eixo, range: [-LAT, LAT], fixedrange: true, ticksuffix: ' m', zeroline: false, tickvals: [-0.3, 0, 0.3], ticktext: ['D 0,3', '0', 'E 0,3'] },
